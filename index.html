@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RED II GHG Savings Calculator (as amended by RED III)</title>
+    <meta
+      name="description"
+      content="Free educational calculator for the greenhouse gas savings of a biofuel under RED II as amended by RED III (Directive (EU) 2018/2001, amended by Directive (EU) 2023/2413)."
+    />
+    <meta name="theme-color" content="#1b6b47" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#calculator">Skip to calculator</a>
+
+    <header class="site-header">
+      <div class="wrap">
+        <p class="eyebrow">RED II as amended by RED III</p>
+        <h1>Biofuel GHG Savings Calculator</h1>
+        <p class="subtitle">
+          Calculates the greenhouse gas savings of a biofuel under RED II as amended by RED III
+          (Directive (EU) 2018/2001, amended by Directive (EU) 2023/2413) and explains the result in
+          plain language.
+        </p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <p class="disclaimer" role="note">
+        <strong>Educational tool.</strong> Not for certification, audits or official GHG reporting.
+        Use certified values and your certification scheme's rules.
+      </p>
+
+      <noscript><p class="disclaimer">This calculator needs JavaScript to run.</p></noscript>
+
+      <section id="calculator" aria-labelledby="calc-heading">
+        <h2 id="calc-heading">Calculator</h2>
+
+        <fieldset class="mode-switch">
+          <legend class="visually-hidden">Calculation mode</legend>
+          <label><input type="radio" name="mode" value="single" checked /><span>Single pathway</span></label>
+          <label><input type="radio" name="mode" value="blend" /><span>Blend</span></label>
+        </fieldset>
+
+        <!-- Single pathway -->
+        <div id="panel-single" class="panel-grid">
+          <form class="card" id="single-form" novalidate>
+            <h3>Inputs</h3>
+
+            <div class="field">
+              <label for="preset">Preset (Annex V default values)</label>
+              <select id="preset"></select>
+              <p class="hint" id="preset-note"></p>
+              <p class="hint source">
+                Source: Annex V Parts A and D, Directive (EU) 2018/2001, consolidated text
+                <a
+                  href="https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02018L2001-20240716"
+                  target="_blank"
+                  rel="noopener"
+                  >02018L2001-20240716</a
+                >. Disaggregated default values in gCO<sub>2</sub>eq/MJ.
+              </p>
+            </div>
+
+            <fieldset class="terms">
+              <legend>Emissions <span class="legend-note">added, gCO<sub>2</sub>eq/MJ</span></legend>
+              <div id="emission-fields"></div>
+            </fieldset>
+
+            <fieldset class="terms">
+              <legend>Emission savings <span class="legend-note">subtracted, gCO<sub>2</sub>eq/MJ</span></legend>
+              <div id="credit-fields"></div>
+            </fieldset>
+
+            <div class="field">
+              <label for="start-date">Date the installation started operation</label>
+              <input type="date" id="start-date" value="2021-01-01" aria-describedby="date-hint" />
+              <p class="hint" id="date-hint">
+                Sets the minimum saving under Art. 29(10)(a)–(c): 50% (in operation on or before
+                05.10.2015), 60% (06.10.2015–31.12.2020), 65% (from 01.01.2021).
+              </p>
+            </div>
+
+            <button type="button" class="btn ghost" id="reset-single">Reset inputs</button>
+          </form>
+
+          <div class="card results" id="single-results"></div>
+        </div>
+
+        <!-- Blend -->
+        <div id="panel-blend" class="panel-grid" hidden>
+          <form class="card" id="blend-form" novalidate>
+            <h3>Blend components</h3>
+            <p class="hint">
+              Up to 5 components. Enter the energy amount (MJ) and the emission intensity E
+              (gCO<sub>2</sub>eq/MJ) of each. Fossil components count as 94.
+            </p>
+            <div id="blend-rows"></div>
+            <div class="row-actions">
+              <button type="button" class="btn" id="add-component">Add component</button>
+              <button type="button" class="btn ghost" id="reset-blend">Reset blend</button>
+            </div>
+          </form>
+
+          <div class="card results" id="blend-results"></div>
+        </div>
+
+        <p class="status" id="live-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section id="explainer" aria-labelledby="explainer-heading">
+        <h2 id="explainer-heading">How to read the result</h2>
+
+        <div class="card prose">
+          <h3>Bio content is not GHG savings</h3>
+          <p>
+            Bio content says where the carbon in a fuel comes from. GHG savings say how much less
+            greenhouse gas the whole supply chain emits per megajoule than the fossil fuel comparator
+            of 94 gCO<sub>2</sub>eq/MJ. These are two different questions.
+          </p>
+          <p>
+            Growing or collecting the feedstock, processing it and transporting the fuel all cause
+            emissions. So a fuel that is 99% bio by energy, made at 20 gCO<sub>2</sub>eq/MJ and blended
+            with 1% fossil, comes out at 20.74 gCO<sub>2</sub>eq/MJ and saves 77.9%, not 99%. The
+            blend mode above starts with exactly this example.
+          </p>
+          <p>
+            The feedstock matters most. With Annex V default values, biodiesel from waste cooking oil
+            saves 84%, while biodiesel from rape seed saves 47%, mainly because a waste carries no
+            cultivation emissions.
+          </p>
+          <p class="formula" aria-label="Formula">
+            E = e<sub>ec</sub> + e<sub>l</sub> + e<sub>p</sub> + e<sub>td</sub> + e<sub>u</sub> − e<sub>sca</sub>
+            − e<sub>ccs</sub> − e<sub>ccr</sub><br />
+            Savings = (94 − E) / 94
+          </p>
+          <p class="hint">Annex V Part C point 1(a) and point 19 (fossil fuel comparator E<sub>F(t)</sub> = 94 gCO<sub>2</sub>eq/MJ).</p>
+        </div>
+
+        <div class="card prose">
+          <h3>What each term means</h3>
+          <dl id="term-list" class="term-list"></dl>
+        </div>
+
+        <div class="card prose">
+          <h3>Good to know</h3>
+          <ul>
+            <li>
+              <strong>Default values and land-use change.</strong> The Annex V default values may only
+              be used when there are no net emissions from land-use change, that is when
+              e<sub>l</sub> is zero or below.
+            </li>
+            <li>
+              <strong>ETBE and TAEE.</strong> The renewable part of ETBE and TAEE takes the value of
+              the ethanol production pathway used.
+            </li>
+            <li>
+              <strong>Thresholds of 70% and 80%.</strong> The thresholds in Art. 29(10)(d)–(h) apply
+              to electricity, heating and cooling from biomass fuels, not to transport biofuels. This
+              tool checks Art. 29(10)(a)–(c) only, which RED III left unchanged.
+            </li>
+            <li>
+              <strong>Blends.</strong> The minimum saving applies to the biofuel itself. The blend
+              mode shows the average of a mix and is there to illustrate the difference between bio
+              content and savings.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="about" aria-labelledby="about-heading">
+        <h2 id="about-heading">About</h2>
+        <div class="card prose">
+          <p>
+            Built by Unaiz Ahmed Khan, chemical engineer in Berlin. Four years leading production and
+            procurement at a renewable fuels producer, where he raised the GHG savings of the
+            company's fuels to 78% (RED II methodology) by sourcing bio-based feedstocks.
+            Environmental Protection Officer (TÜV Rheinland) and IPMA Level D certified project
+            manager, both 2026.
+          </p>
+          <p class="links">
+            <a href="https://www.linkedin.com/in/unaizkhan" target="_blank" rel="noopener">linkedin.com/in/unaizkhan</a>
+            <a href="https://github.com/Unaiz16" target="_blank" rel="noopener">github.com/Unaiz16</a>
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          Legal source: Directive (EU) 2018/2001 as amended by Directive (EU) 2023/2413, consolidated
+          text of 16.07.2024,
+          <a
+            href="https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02018L2001-20240716"
+            target="_blank"
+            rel="noopener"
+            >CELEX 02018L2001-20240716 on EUR-Lex</a
+          >.
+        </p>
+        <p>
+          Educational tool. Not for certification, audits or official GHG reporting. Use certified
+          values and your certification scheme's rules.
+        </p>
+        <p>Runs entirely in your browser. No cookies, no tracking.</p>
+      </div>
+    </footer>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
