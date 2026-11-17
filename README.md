@@ -20,6 +20,8 @@ It answers a question that comes up often: why can a fuel be 99% bio and save on
 - **Chart.** Stacked contribution of each term against the fossil comparator line (94) and the threshold line, with exact values on hover, tap or keyboard focus.
 - **Copy result, copy link, print.** Plain-text summary for notes or email, a shareable link that carries the inputs in the URL, and a one-page print layout.
 
+- **English and German.** EN/DE toggle in the header. German browsers start in German; `?lang=de` or `?lang=en` in the link sets it explicitly.
+
 No backend, no API keys, no tracking, no cookies. Everything runs in the browser.
 
 ## Method
@@ -100,10 +102,11 @@ Static site. Cloudflare Pages is connected to this repository: build command `np
 ```
 src/calc.ts      calculation module (pure functions, no DOM)
 src/presets.ts   the five verified Annex V presets
-src/terms.ts     labels and plain-language explanations of the terms
+src/terms.ts     structure of the eight terms
+src/i18n.ts      all English and German texts
 src/main.ts      UI wiring
 src/style.css    styles
-tests/           Vitest tests for the calculation module and presets
+tests/           Vitest tests for the calculation module, presets and translations
 ```
 
 ## About

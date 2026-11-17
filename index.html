@@ -13,13 +13,17 @@
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
-    <a class="skip-link" href="#calculator">Skip to calculator</a>
+    <a class="skip-link" href="#calculator" data-i18n="skip">Skip to calculator</a>
 
     <header class="site-header">
       <div class="wrap">
-        <p class="eyebrow">RED II as amended by RED III</p>
-        <h1>Biofuel GHG Savings Calculator</h1>
-        <p class="subtitle">
+        <div class="lang-switch" role="group" aria-label="Language / Sprache">
+          <button type="button" data-lang="en" lang="en" aria-pressed="true" aria-label="English">EN</button>
+          <button type="button" data-lang="de" lang="de" aria-pressed="false" aria-label="Deutsch">DE</button>
+        </div>
+        <p class="eyebrow" data-i18n="eyebrow">RED II as amended by RED III</p>
+        <h1 data-i18n="h1">Biofuel GHG Savings Calculator</h1>
+        <p class="subtitle" data-i18n="subtitle">
           Calculates the greenhouse gas savings of a biofuel under RED II as amended by RED III
           (Directive (EU) 2018/2001, amended by Directive (EU) 2023/2413) and explains the result in
           plain language.
@@ -28,32 +32,32 @@
     </header>
 
     <main class="wrap">
-      <p class="disclaimer" role="note">
+      <p class="disclaimer" role="note" data-i18n="disclaimer">
         <strong>Educational tool.</strong> Not for certification, audits or official GHG reporting.
         Use certified values and your certification scheme's rules.
       </p>
 
-      <noscript><p class="disclaimer">This calculator needs JavaScript to run.</p></noscript>
+      <noscript><p class="disclaimer" data-i18n="noscript">This calculator needs JavaScript to run.</p></noscript>
 
       <section id="calculator" aria-labelledby="calc-heading">
-        <h2 id="calc-heading">Calculator</h2>
+        <h2 id="calc-heading" data-i18n="calc-heading">Calculator</h2>
 
         <fieldset class="mode-switch">
-          <legend class="visually-hidden">Calculation mode</legend>
-          <label><input type="radio" name="mode" value="single" checked /><span>Single pathway</span></label>
-          <label><input type="radio" name="mode" value="blend" /><span>Blend</span></label>
+          <legend class="visually-hidden" data-i18n="mode-legend">Calculation mode</legend>
+          <label><input type="radio" name="mode" value="single" checked /><span data-i18n="mode-single">Single pathway</span></label>
+          <label><input type="radio" name="mode" value="blend" /><span data-i18n="mode-blend">Blend</span></label>
         </fieldset>
 
         <!-- Single pathway -->
         <div id="panel-single" class="panel-grid">
           <form class="card" id="single-form" novalidate>
-            <h3>Inputs</h3>
+            <h3 data-i18n="inputs">Inputs</h3>
 
             <div class="field">
-              <label for="preset">Preset (Annex V default values)</label>
+              <label for="preset" data-i18n="preset-label">Preset (Annex V default values)</label>
               <select id="preset"></select>
               <p class="hint" id="preset-note"></p>
-              <p class="hint source">
+              <p class="hint source" data-i18n="preset-source">
                 Source: Annex V Parts A and D, Directive (EU) 2018/2001, consolidated text
                 <a
                   href="https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02018L2001-20240716"
@@ -65,25 +69,25 @@
             </div>
 
             <fieldset class="terms">
-              <legend>Emissions <span class="legend-note">added, gCO<sub>2</sub>eq/MJ</span></legend>
+              <legend data-i18n="legend-emissions">Emissions <span class="legend-note">added, gCO<sub>2</sub>eq/MJ</span></legend>
               <div id="emission-fields"></div>
             </fieldset>
 
             <fieldset class="terms">
-              <legend>Emission savings <span class="legend-note">subtracted, gCO<sub>2</sub>eq/MJ</span></legend>
+              <legend data-i18n="legend-credits">Emission savings <span class="legend-note">subtracted, gCO<sub>2</sub>eq/MJ</span></legend>
               <div id="credit-fields"></div>
             </fieldset>
 
             <div class="field">
-              <label for="start-date">Date the installation started operation</label>
+              <label for="start-date" data-i18n="date-label">Date the installation started operation</label>
               <input type="date" id="start-date" value="2021-01-01" aria-describedby="date-hint" />
-              <p class="hint" id="date-hint">
+              <p class="hint" id="date-hint" data-i18n="date-hint">
                 Sets the minimum saving under Art. 29(10)(a)–(c): 50% (in operation on or before
                 05.10.2015), 60% (06.10.2015–31.12.2020), 65% (from 01.01.2021).
               </p>
             </div>
 
-            <button type="button" class="btn ghost" id="reset-single">Reset inputs</button>
+            <button type="button" class="btn ghost" id="reset-single" data-i18n="reset-single">Reset inputs</button>
           </form>
 
           <div class="card results" id="single-results"></div>
@@ -92,15 +96,15 @@
         <!-- Blend -->
         <div id="panel-blend" class="panel-grid" hidden>
           <form class="card" id="blend-form" novalidate>
-            <h3>Blend components</h3>
-            <p class="hint">
+            <h3 data-i18n="blend-heading">Blend components</h3>
+            <p class="hint" data-i18n="blend-hint">
               Up to 5 components. Enter the energy amount (MJ) and the emission intensity E
               (gCO<sub>2</sub>eq/MJ) of each. Fossil components count as 94.
             </p>
             <div id="blend-rows"></div>
             <div class="row-actions">
               <button type="button" class="btn" id="add-component">Add component</button>
-              <button type="button" class="btn ghost" id="reset-blend">Reset blend</button>
+              <button type="button" class="btn ghost" id="reset-blend" data-i18n="reset-blend">Reset blend</button>
             </div>
           </form>
 
@@ -111,9 +115,9 @@
       </section>
 
       <section id="explainer" aria-labelledby="explainer-heading">
-        <h2 id="explainer-heading">How to read the result</h2>
+        <h2 id="explainer-heading" data-i18n="explainer-heading">How to read the result</h2>
 
-        <div class="card prose">
+        <div class="card prose" data-i18n="bio-card">
           <h3>Bio content is not GHG savings</h3>
           <p>
             Bio content says where the carbon in a fuel comes from. GHG savings say how much less
@@ -140,11 +144,11 @@
         </div>
 
         <div class="card prose">
-          <h3>What each term means</h3>
+          <h3 data-i18n="terms-heading">What each term means</h3>
           <dl id="term-list" class="term-list"></dl>
         </div>
 
-        <div class="card prose">
+        <div class="card prose" data-i18n="good-card">
           <h3>Good to know</h3>
           <ul>
             <li>
@@ -171,9 +175,9 @@
       </section>
 
       <section id="about" aria-labelledby="about-heading">
-        <h2 id="about-heading">About</h2>
+        <h2 id="about-heading" data-i18n="about-heading">About</h2>
         <div class="card prose">
-          <p>
+          <p data-i18n="about-text">
             Built by Unaiz Ahmed Khan, chemical engineer in Berlin. Four years leading production and
             procurement at a renewable fuels producer, where he raised the GHG savings of the
             company's fuels to 78% (RED II methodology) by sourcing bio-based feedstocks.
@@ -190,7 +194,7 @@
 
     <footer class="site-footer">
       <div class="wrap">
-        <p>
+        <p data-i18n="footer-source">
           Legal source: Directive (EU) 2018/2001 as amended by Directive (EU) 2023/2413, consolidated
           text of 16.07.2024,
           <a
@@ -200,11 +204,11 @@
             >CELEX 02018L2001-20240716 on EUR-Lex</a
           >.
         </p>
-        <p>
+        <p data-i18n="footer-disclaimer">
           Educational tool. Not for certification, audits or official GHG reporting. Use certified
           values and your certification scheme's rules.
         </p>
-        <p>Runs entirely in your browser. No cookies, no tracking.</p>
+        <p data-i18n="footer-privacy">Runs entirely in your browser. No cookies, no tracking.</p>
       </div>
     </footer>
 

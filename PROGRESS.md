@@ -36,9 +36,14 @@ Handover file so another session can continue. Update after every step.
       owner asked (generic opening, removed a sentence that was not a profile fact).
 - [x] 8. Final acceptance check on the live URL (17.11.2026): all pass.
 
+- [x] Stretch A: German version. EN/DE toggle in the header, texts in `src/i18n.ts`
+      (script texts as `EN`/`DE`, static page texts as `STATIC_DE` keyed by
+      `data-i18n` in `index.html`). Language comes from `?lang=`, else the browser
+      language, else English. German uses decimal commas. `tests/i18n.test.ts` fails
+      if a text is missing in either language.
+
 ## Next
 
-- [ ] Stretch A: German version (EN/DE toggle, plain technical German).
 - [ ] Stretch B: `job-fit-scorer/` Claude skill (SKILL.md + 3 test job ads with
       expected outputs). Needs `Career_Agent_Profile_Unaiz.md` from the owner in that
       folder; the skill must use only facts from that file.
@@ -64,6 +69,10 @@ scenarios and screenshots, and `npx lighthouse http://localhost:4173/` with
 `CHROME_PATH` pointing at Chromium. These scripts are not in the repo.
 
 ## Open questions
+
+- German wording should be read once by the owner, especially the certificate title
+  "Umweltschutzbeauftragter (TÜV Rheinland)" in the About text and the German
+  preset names (written to follow the German text of Annex V, not checked against it).
 
 - Resolved: the repository was completely empty when work started. With the owner's
   approval, `main` was created from the README-only "Initial commit" of this branch.
