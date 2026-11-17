@@ -42,16 +42,11 @@ Handover file so another session can continue. Update after every step.
       language, else English. German uses decimal commas. `tests/i18n.test.ts` fails
       if a text is missing in either language.
 
-- [x] Stretch B: `job-fit-scorer/` (SKILL.md, README, 3 invented test ads with
-      expected results: strong fit, partial fit, not-a-fit). Written before the profile
-      file existed; expected results rely only on the About facts.
-
 - [x] PR 3 work: e-fuel mode (RFNBO / recycled carbon fuel) per Delegated Regulation
       (EU) 2023/1185: E = ei + ep + etd + eu − eccs, comparator 94, minimum 70 %
       (E ≤ 28.2). No default values. EN + DE, explainer on grid electricity, SAF note,
       new tagline, blend heading "Blend / compare supplier offers" with a saving column
       per component. `src/calc.ts` (EFUEL_*), `tests/efuel.test.ts`.
-- [x] Removed the instruction to add the career profile to this public repo.
 - [x] Help tooltips: a "?" button next to every input, term, threshold and result
       label, one plain sentence each in EN and DE (`help`, `helpTerms`,
       `helpEfuelTerms` in `src/i18n.ts`). Shown on hover, keyboard focus and tap through
@@ -122,8 +117,7 @@ English stays "gCO₂eq/MJ" (`unit` in `src/i18n.ts`, guarded by `tests/i18n.tes
 
 ## Next
 
-- Decided by the owner: the career profile file is private and must NOT be added to
-  this public repo. The job-fit scorer is used privately.
+- Nothing open.
 
 ## Acceptance criteria status (checked on the live URL)
 
