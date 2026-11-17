@@ -24,6 +24,7 @@ It answers a question that comes up often: why can a fuel be 99% bio and save on
 - **Chart.** Stacked contribution of each term against the fossil comparator line (94) and the threshold line, with exact values on hover, tap or keyboard focus.
 - **Copy result, copy link, print.** Plain-text summary for notes or email, a shareable link that carries the inputs in the URL, and a one-page print layout.
 
+- **Help tooltips.** A "?" next to every input, term, threshold and result label with one plain sentence, on hover, keyboard focus and tap.
 - **English and German.** EN/DE toggle in the header. German browsers start in German; `?lang=de` or `?lang=en` in the link sets it explicitly.
 
 No backend, no API keys, no tracking, no cookies. Everything runs in the browser.

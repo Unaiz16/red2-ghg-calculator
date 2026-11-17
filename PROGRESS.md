@@ -52,6 +52,12 @@ Handover file so another session can continue. Update after every step.
       new tagline, blend heading "Blend / compare supplier offers" with a saving column
       per component. `src/calc.ts` (EFUEL_*), `tests/efuel.test.ts`.
 - [x] Removed the instruction to add the career profile to this public repo.
+- [x] Help tooltips: a "?" button next to every input, term, threshold and result
+      label, one plain sentence each in EN and DE (`help`, `helpTerms`,
+      `helpEfuelTerms` in `src/i18n.ts`). Shown on hover, keyboard focus and tap through
+      the shared floating tooltip; each button and its input point to the sentence with
+      `aria-describedby`. The esca "i" button is replaced by its "?" with the same
+      RED III text.
 
 ## To verify (owner checks on EUR-Lex before PR 3 is marked ready)
 

@@ -4,6 +4,21 @@ export type Lang = 'en' | 'de';
 
 const UNIT = 'gCO₂eq/MJ';
 
+export type HelpKey =
+  | 'preset'
+  | 'date'
+  | 'savings'
+  | 'totalE'
+  | 'threshold'
+  | 'comparator'
+  | 'blendName'
+  | 'blendEnergy'
+  | 'blendE'
+  | 'blendFossil'
+  | 'blendSavings'
+  | 'blendIntensity'
+  | 'efuelThreshold';
+
 interface TermText {
   label: string;
   hint?: string;
@@ -98,6 +113,11 @@ export interface Messages {
   defaultBio: string;
   defaultFossil: string;
   savingCol: string;
+  // help tooltips: one plain sentence each
+  helpName: (label: string) => string;
+  helpTerms: Record<TermKey, string>;
+  helpEfuelTerms: Record<EfuelKey, string>;
+  help: Record<HelpKey, string>;
   // e-fuel
   efuelTerms: Record<EfuelKey, TermText>;
   efuelResult: string;
@@ -261,6 +281,39 @@ export const EN: Messages = {
   defaultBio: 'Biofuel',
   defaultFossil: 'Fossil fuel',
   savingCol: 'Saving',
+  helpName: (label) => `Help: ${label}`,
+  helpTerms: {
+    eec: 'Emissions from growing or extracting the raw material; zero for wastes and residues.',
+    el: 'Yearly share of the emissions caused when land was converted to grow the feedstock; zero without land-use change.',
+    ep: 'Emissions from the energy and chemicals used to turn the raw material into fuel.',
+    etd: 'Emissions from transporting and storing the raw materials and the finished fuel.',
+    eu: 'Emissions from burning the fuel, which are set to zero for biofuels.',
+    esca: 'Since RED III, soil-carbon savings count only with solid, verifiable evidence that soil carbon has increased, with no risk of harming biodiversity, and after accounting for any extra fertiliser or herbicide use (Annex V Part C point 6 as amended).',
+    eccs: 'Savings from capturing CO₂ from the process and storing it permanently underground.',
+    eccr: 'Savings from capturing CO₂ of biomass origin that replaces fossil CO₂ in products.',
+  },
+  helpEfuelTerms: {
+    ei: 'Emissions from supplying the inputs of the fuel, mainly the electricity.',
+    ep: 'Direct emissions of the production process.',
+    etd: 'Emissions from transporting, storing and distributing the fuel.',
+    eu: 'Emissions from burning the fuel in its end use.',
+    eccs: 'Savings from capturing CO₂ and storing it permanently underground.',
+  },
+  help: {
+    preset: 'Fills in the default values that the Directive lists for this production pathway.',
+    date: 'The date the plant started operating decides whether a saving of 50%, 60% or 65% is required.',
+    savings: 'How much less greenhouse gas this fuel causes per megajoule than the fossil fuel comparator.',
+    totalE: 'All emissions of the supply chain minus the savings terms, per megajoule of fuel.',
+    threshold: 'The minimum saving the Directive requires for this fuel.',
+    comparator: 'The emissions of the fossil fuel that the renewable fuel is compared with, fixed at 94 gCO₂eq/MJ.',
+    blendName: 'A label for this component or supplier offer.',
+    blendEnergy: 'How much energy this component contributes to the mix, in megajoules.',
+    blendE: 'The emissions of this component per megajoule.',
+    blendFossil: 'Tick this for a fossil fuel, which always counts as 94 gCO₂eq/MJ.',
+    blendSavings: 'The saving of the whole mix against the fossil fuel comparator.',
+    blendIntensity: 'The average emissions of the mix, weighted by the energy of each component.',
+    efuelThreshold: 'E-fuels must save at least 70%, which means at most 28.2 gCO₂eq/MJ.',
+  },
   efuelTerms: {
     ei: {
       label: 'Supply of inputs',
@@ -453,6 +506,39 @@ export const DE: Messages = {
   defaultBio: 'Biokraftstoff',
   defaultFossil: 'Fossiler Kraftstoff',
   savingCol: 'Einsparung',
+  helpName: (label) => `Hilfe: ${label}`,
+  helpTerms: {
+    eec: 'Emissionen aus Anbau oder Gewinnung des Rohstoffs; null bei Abfällen und Reststoffen.',
+    el: 'Jährlicher Anteil der Emissionen, die durch die Umwandlung von Flächen für den Rohstoffanbau entstanden sind; null ohne Landnutzungsänderung.',
+    ep: 'Emissionen aus Energie und Chemikalien für die Umwandlung des Rohstoffs in Kraftstoff.',
+    etd: 'Emissionen aus Transport und Lagerung der Rohstoffe und des fertigen Kraftstoffs.',
+    eu: 'Emissionen aus der Verbrennung des Kraftstoffs; für Biokraftstoffe mit null angesetzt.',
+    esca: 'Seit RED III zählen Einsparungen durch Bodenkohlenstoff nur, wenn belastbar und überprüfbar nachgewiesen ist, dass der Kohlenstoffgehalt des Bodens gestiegen ist, wenn keine Gefahr für die Biodiversität besteht und wenn ein zusätzlicher Einsatz von Dünge- oder Pflanzenschutzmitteln (Herbiziden) berücksichtigt wird (Anhang V Teil C Nummer 6 in der geänderten Fassung).',
+    eccs: 'Einsparungen durch die Abscheidung von CO₂ aus dem Prozess und seine dauerhafte Speicherung im Untergrund.',
+    eccr: 'Einsparungen durch die Abscheidung von CO₂ aus Biomasse, das fossiles CO₂ in Produkten ersetzt.',
+  },
+  helpEfuelTerms: {
+    ei: 'Emissionen aus der Bereitstellung der Einsatzstoffe des Kraftstoffs, vor allem des Stroms.',
+    ep: 'Direkte Emissionen des Herstellungsprozesses.',
+    etd: 'Emissionen aus Transport, Lagerung und Vertrieb des Kraftstoffs.',
+    eu: 'Emissionen aus der Verbrennung des Kraftstoffs bei der Endnutzung.',
+    eccs: 'Einsparungen durch die Abscheidung von CO₂ und seine dauerhafte Speicherung im Untergrund.',
+  },
+  help: {
+    preset: 'Trägt die Standardwerte ein, die die Richtlinie für diesen Herstellungsweg nennt.',
+    date: 'Das Datum der Inbetriebnahme der Anlage entscheidet, ob eine Einsparung von 50\u00a0%, 60\u00a0% oder 65\u00a0% verlangt wird.',
+    savings: 'Wie viel weniger Treibhausgase dieser Kraftstoff je Megajoule verursacht als der fossile Vergleichswert.',
+    totalE: 'Alle Emissionen der Lieferkette abzüglich der Einsparterme, je Megajoule Kraftstoff.',
+    threshold: 'Die Mindesteinsparung, die die Richtlinie für diesen Kraftstoff verlangt.',
+    comparator: 'Die Emissionen des fossilen Kraftstoffs, mit dem der erneuerbare Kraftstoff verglichen wird; festgelegt auf 94 gCO₂eq/MJ.',
+    blendName: 'Eine Bezeichnung für diese Komponente oder dieses Lieferantenangebot.',
+    blendEnergy: 'Wie viel Energie diese Komponente zur Mischung beiträgt, in Megajoule.',
+    blendE: 'Die Emissionen dieser Komponente je Megajoule.',
+    blendFossil: 'Für fossilen Kraftstoff ankreuzen; er zählt immer mit 94 gCO₂eq/MJ.',
+    blendSavings: 'Die Einsparung der gesamten Mischung gegenüber dem fossilen Vergleichswert.',
+    blendIntensity: 'Die durchschnittlichen Emissionen der Mischung, gewichtet nach der Energie der Komponenten.',
+    efuelThreshold: 'E-Fuels müssen mindestens 70\u00a0% einsparen, also höchstens 28,2 gCO₂eq/MJ verursachen.',
+  },
   efuelTerms: {
     ei: {
       label: 'Bereitstellung der Inputs',

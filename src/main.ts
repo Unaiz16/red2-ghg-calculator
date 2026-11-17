@@ -22,7 +22,7 @@ import {
   type TermKey,
 } from './calc';
 import { PRESETS } from './presets';
-import { STATIC_DE, detectLang, messages, type Lang } from './i18n';
+import { STATIC_DE, detectLang, messages, type HelpKey, type Lang } from './i18n';
 import { TERMS, type TermInfo } from './terms';
 
 const UNIT = 'gCO₂eq/MJ';
@@ -62,6 +62,21 @@ function fmtInput(value: number): string {
 function fmtDate(iso: string): string {
   const [y, m, d] = iso.split('-');
   return `${d}.${m}.${y}`;
+}
+
+/**
+ * Small "?" button with a one-sentence explanation. The sentence is shown in the
+ * floating tooltip on hover, focus and tap, and is read by screen readers through
+ * aria-describedby. Returns the id of the description as well, so an input can
+ * point to it too.
+ */
+let helpSeq = 0;
+function help(label: string, text: string): { html: string; id: string } {
+  const id = `help-${++helpSeq}`;
+  return {
+    id,
+    html: `<button type="button" class="help-btn" aria-describedby="${id}" data-tip="${esc(text)}"><span aria-hidden="true">?</span><span class="visually-hidden">${esc(T.helpName(label))}</span></button><span id="${id}" class="visually-hidden">${esc(text)}</span>`,
+  };
 }
 
 function sym(term: TermInfo): string {
@@ -417,19 +432,13 @@ function termField(term: TermInfo): string {
   const text = T.terms[term.key];
   const describedBy: string[] = [];
   if (text.hint) describedBy.push(`hint-${term.key}`);
-  if (term.key === 'esca') describedBy.push('tip-esca');
   describedBy.push(`err-${term.key}`);
-  const info =
-    term.key === 'esca'
-      ? `<button type="button" class="info-btn" id="esca-info" aria-expanded="false" aria-controls="tip-esca" aria-label="${esc(T.escaInfoLabel)}">i</button>`
-      : '';
-  const tip =
-    term.key === 'esca' ? `<p class="tooltip" id="tip-esca" role="tooltip" hidden>${esc(T.escaTooltip)}</p>` : '';
+  const h = help(text.label, T.helpTerms[term.key]);
+  describedBy.unshift(h.id);
   return `<div class="term-field">
-    <div class="label-row"><label for="${id}"><span class="sym">${sym(term)}</span> ${esc(text.label)}</label>${info}</div>
+    <div class="label-row"><label for="${id}"><span class="sym">${sym(term)}</span> ${esc(text.label)}</label>${h.html}</div>
     <input type="number" id="${id}" name="${term.key}" inputmode="decimal" step="0.1" ${term.allowNegative ? '' : 'min="0"'} value="0" aria-describedby="${describedBy.join(' ')}" />
     ${text.hint ? `<p class="hint" id="hint-${term.key}">${esc(text.hint)}</p>` : ''}
-    ${tip}
     <p class="error" id="err-${term.key}" hidden></p>
   </div>`;
 }
@@ -493,7 +502,7 @@ function renderSingle(): void {
     const date = fmtDate(startDate.value);
     badge = `<div class="verdict ${pass ? 'pass' : 'fail'}">
       <span class="badge">${pass ? T.pass : T.fail}</span>
-      <p><strong>${gapText}.</strong> ${T.verdict(pass, threshold.percent, threshold.point, date)}</p>
+      <p><strong>${gapText}.</strong> ${T.verdict(pass, threshold.percent, threshold.point, date)} ${help(T.chartMinimum(threshold.percent), T.help.threshold).html}</p>
     </div>`;
     thresholdLine = T.thresholdCopy(threshold.point, date, threshold.percent, pass ? T.passCopy : T.failCopy, gapText);
   }
@@ -503,7 +512,7 @@ function renderSingle(): void {
     const v = inputs[term.key];
     const contribution = credit ? -v : v;
     return `<tr>
-      <th scope="row"><span class="sym">${sym(term)}</span> <span class="term-name">${esc(T.terms[term.key].label)}</span></th>
+      <th scope="row"><span class="sym">${sym(term)}</span> <span class="term-name">${esc(T.terms[term.key].label)}</span> ${help(T.terms[term.key].label, T.helpTerms[term.key]).html}</th>
       <td class="num">${fmt(contribution + 0, 2)}</td>
     </tr>`;
   }).join('');
@@ -522,8 +531,8 @@ function renderSingle(): void {
   singleResults.innerHTML = `
     <h3>${T.result}</h3>
     <div class="headline">
-      <div class="big"><span class="big-label">${T.ghgSavings}</span><span class="big-num">${animNum('s-saving', saving, 1, true)}</span></div>
-      <div class="big"><span class="big-label">${T.totalEmissions}</span><span class="big-num">${animNum('s-e', e, 2)} <span class="unit">${UNIT}</span></span></div>
+      <div class="big"><span class="big-label">${T.ghgSavings} ${help(T.ghgSavings, T.help.savings).html}</span><span class="big-num">${animNum('s-saving', saving, 1, true)}</span></div>
+      <div class="big"><span class="big-label">${T.totalEmissions} ${help(T.totalEmissions, T.help.totalE).html}</span><span class="big-num">${animNum('s-e', e, 2)} <span class="unit">${UNIT}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}</p>
     ${savingsNote(e)}
@@ -534,8 +543,8 @@ function renderSingle(): void {
         <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${UNIT}</th></tr></thead>
         <tbody>${rows}</tbody>
         <tfoot>
-          <tr><th scope="row">${T.eTotal}</th><td class="num">${fmt(e, 2)}</td></tr>
-          <tr><th scope="row">${T.comparatorRow}</th><td class="num">${fmt(FOSSIL_COMPARATOR, 2)}</td></tr>
+          <tr><th scope="row">${T.eTotal} ${help(T.eTotal, T.help.totalE).html}</th><td class="num">${fmt(e, 2)}</td></tr>
+          <tr><th scope="row">${T.comparatorRow} ${help(T.chartComparator, T.help.comparator).html}</th><td class="num">${fmt(FOSSIL_COMPARATOR, 2)}</td></tr>
           <tr><th scope="row">${T.ghgSavings}</th><td class="num">${pct(saving)}</td></tr>
         </tfoot>
       </table>
@@ -627,36 +636,6 @@ function initSingle(): void {
     announce(T.inputsReset);
   });
 
-  // esca tooltip: click or keyboard toggles, hover shows, Escape closes.
-  // Delegated, because the fields are rebuilt when the language changes.
-  let pinned = false;
-  const show = (open: boolean) => {
-    const tip = document.getElementById('tip-esca');
-    const btn = document.getElementById('esca-info');
-    if (!tip || !btn) return;
-    tip.hidden = !open;
-    btn.setAttribute('aria-expanded', String(open));
-  };
-  const isInfo = (e: Event) => e.target instanceof Element && e.target.closest('#esca-info') !== null;
-  singleForm.addEventListener('click', (e) => {
-    if (!isInfo(e)) return;
-    pinned = !pinned;
-    show(pinned);
-  });
-  singleForm.addEventListener('mouseover', (e) => isInfo(e) && show(true));
-  singleForm.addEventListener('mouseout', (e) => isInfo(e) && show(pinned));
-  singleForm.addEventListener('focusin', (e) => isInfo(e) && show(true));
-  singleForm.addEventListener('focusout', (e) => isInfo(e) && show(pinned));
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      pinned = false;
-      show(false);
-    }
-  });
-  document.addEventListener('languagechange-app', () => {
-    pinned = false;
-  });
-
   // Start with a preset so the page shows a real result straight away.
   presetSelect.value = PRESETS[0].id;
   applyPreset(PRESETS[0].id);
@@ -686,24 +665,28 @@ function renderBlendRows(): void {
   blendRowsEl.innerHTML = blendRows
     .map((row, i) => {
       const n = i + 1;
+      const hName = help(T.name, T.help.blendName);
+      const hEnergy = help(T.energy, T.help.blendEnergy);
+      const hE = help('E', T.help.blendE);
+      const hFossil = help(T.fossilCheck, T.help.blendFossil);
       return `<fieldset class="blend-row" data-index="${i}">
         <legend>${T.component(n)}</legend>
         <div class="blend-grid">
           <div class="field name">
-            <label for="b-name-${i}">${T.name}</label>
-            <input type="text" id="b-name-${i}" data-field="name" maxlength="40" value="${esc(row.name)}" autocomplete="off" />
+            <div class="label-row"><label for="b-name-${i}">${T.name}</label>${hName.html}</div>
+            <input type="text" id="b-name-${i}" data-field="name" aria-describedby="${hName.id}" maxlength="40" value="${esc(row.name)}" autocomplete="off" />
           </div>
           <div class="field">
-            <label for="b-energy-${i}">${T.energy}</label>
-            <input type="number" id="b-energy-${i}" data-field="energy" inputmode="decimal" min="0" step="any" value="${esc(row.energy)}" aria-describedby="b-err-${i}" />
+            <div class="label-row"><label for="b-energy-${i}">${T.energy}</label>${hEnergy.html}</div>
+            <input type="number" id="b-energy-${i}" data-field="energy" inputmode="decimal" min="0" step="any" value="${esc(row.energy)}" aria-describedby="${hEnergy.id} b-err-${i}" />
           </div>
           <div class="field">
-            <label for="b-e-${i}">E (${UNIT})</label>
-            <input type="number" id="b-e-${i}" data-field="e" inputmode="decimal" step="0.1" value="${row.fossil ? '94' : esc(row.e)}" ${row.fossil ? 'disabled' : ''} aria-describedby="b-err-${i}" />
+            <div class="label-row"><label for="b-e-${i}">E (${UNIT})</label>${hE.html}</div>
+            <input type="number" id="b-e-${i}" data-field="e" inputmode="decimal" step="0.1" value="${row.fossil ? '94' : esc(row.e)}" ${row.fossil ? 'disabled' : ''} aria-describedby="${hE.id} b-err-${i}" />
           </div>
         </div>
         <div class="blend-foot">
-          <label class="check"><input type="checkbox" data-field="fossil" ${row.fossil ? 'checked' : ''} /> ${T.fossilCheck}</label>
+          <label class="check"><input type="checkbox" data-field="fossil" aria-describedby="${hFossil.id}" ${row.fossil ? 'checked' : ''} /> ${T.fossilCheck}</label>${hFossil.html}
           <button type="button" class="btn ghost small" data-remove="${i}" ${blendRows.length <= 1 ? 'disabled' : ''} aria-label="${T.removeLabel(n)}">${T.remove}</button>
         </div>
         <p class="error" id="b-err-${i}" hidden></p>
@@ -771,8 +754,8 @@ function renderBlend(): void {
   blendResults.innerHTML = `
     <h3>${T.blendResult}</h3>
     <div class="headline">
-      <div class="big"><span class="big-label">${T.blendSavings}</span><span class="big-num">${animNum('b-saving', result.savingsPercent, 1, true)}</span></div>
-      <div class="big"><span class="big-label">${T.blendIntensity}</span><span class="big-num">${animNum('b-e', result.intensity, 2)} <span class="unit">${UNIT}</span></span></div>
+      <div class="big"><span class="big-label">${T.blendSavings} ${help(T.blendSavings, T.help.blendSavings).html}</span><span class="big-num">${animNum('b-saving', result.savingsPercent, 1, true)}</span></div>
+      <div class="big"><span class="big-label">${T.blendIntensity} ${help(T.blendIntensity, T.help.blendIntensity).html}</span><span class="big-num">${animNum('b-e', result.intensity, 2)} <span class="unit">${UNIT}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(result.intensity, 2)}) / 94 = ${pct(result.savingsPercent)}</p>
     <p class="compare">${T.blendCompare(pct(result.bioSharePercent), pct(result.savingsPercent))}</p>
@@ -886,9 +869,10 @@ function buildEfuelForm(): void {
   }
   $('#efuel-fields').innerHTML = EFUEL_FIELDS.map((f) => {
     const text = T.efuelTerms[f.key];
-    const describedBy = [text.hint ? `fhint-${f.key}` : '', `ferr-${f.key}`].filter(Boolean).join(' ');
+    const h = help(text.label, T.helpEfuelTerms[f.key]);
+    const describedBy = [h.id, text.hint ? `fhint-${f.key}` : '', `ferr-${f.key}`].filter(Boolean).join(' ');
     return `<div class="term-field">
-      <div class="label-row"><label for="fin-${f.key}"><span class="sym">e<sub>${f.sub}</sub></span> ${esc(text.label)}</label></div>
+      <div class="label-row"><label for="fin-${f.key}"><span class="sym">e<sub>${f.sub}</sub></span> ${esc(text.label)}</label>${h.html}</div>
       <input type="number" id="fin-${f.key}" name="${f.key}" inputmode="decimal" step="0.1" ${f.allowNegative ? '' : 'min="0"'} value="0" aria-describedby="${describedBy}" />
       ${text.hint ? `<p class="hint" id="fhint-${f.key}">${esc(text.hint)}</p>` : ''}
       <p class="error" id="ferr-${f.key}" hidden></p>
@@ -935,7 +919,7 @@ function renderEfuel(): void {
   const contribution = (key: EfuelKey) => (key === 'eccs' ? -inputs[key] : inputs[key]) + 0;
   const rows = EFUEL_FIELDS.map(
     (f) => `<tr>
-      <th scope="row"><span class="sym">e<sub>${f.sub}</sub></span> <span class="term-name">${esc(T.efuelTerms[f.key].label)}</span></th>
+      <th scope="row"><span class="sym">e<sub>${f.sub}</sub></span> <span class="term-name">${esc(T.efuelTerms[f.key].label)}</span> ${help(T.efuelTerms[f.key].label, T.helpEfuelTerms[f.key]).html}</th>
       <td class="num">${fmt(contribution(f.key), 2)}</td>
     </tr>`,
   ).join('');
@@ -948,14 +932,14 @@ function renderEfuel(): void {
   efuelResults.innerHTML = `
     <h3>${T.efuelResult}</h3>
     <div class="headline">
-      <div class="big"><span class="big-label">${T.ghgSavings}</span><span class="big-num">${animNum('f-saving', saving, 1, true)}</span></div>
-      <div class="big"><span class="big-label">${T.totalEmissions}</span><span class="big-num">${animNum('f-e', e, 2)} <span class="unit">${UNIT}</span></span></div>
+      <div class="big"><span class="big-label">${T.ghgSavings} ${help(T.ghgSavings, T.help.savings).html}</span><span class="big-num">${animNum('f-saving', saving, 1, true)}</span></div>
+      <div class="big"><span class="big-label">${T.totalEmissions} ${help(T.totalEmissions, T.help.totalE).html}</span><span class="big-num">${animNum('f-e', e, 2)} <span class="unit">${UNIT}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}</p>
     ${savingsNote(e)}
     <div class="verdict ${pass ? 'pass' : 'fail'}">
       <span class="badge">${pass ? T.pass : T.fail}</span>
-      <p><strong>${gapText}.</strong> ${T.efuelVerdict(pass)}</p>
+      <p><strong>${gapText}.</strong> ${T.efuelVerdict(pass)} ${help(T.chartMinimum(EFUEL_MIN_SAVINGS_PERCENT), T.help.efuelThreshold).html}</p>
     </div>
     <div class="table-wrap">
       <table class="breakdown">
@@ -963,8 +947,8 @@ function renderEfuel(): void {
         <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${UNIT}</th></tr></thead>
         <tbody>${rows}</tbody>
         <tfoot>
-          <tr><th scope="row">${T.eTotal}</th><td class="num">${fmt(e, 2)}</td></tr>
-          <tr><th scope="row">${T.comparatorRow.split(',')[0]}</th><td class="num">${fmt(FOSSIL_COMPARATOR, 2)}</td></tr>
+          <tr><th scope="row">${T.eTotal} ${help(T.eTotal, T.help.totalE).html}</th><td class="num">${fmt(e, 2)}</td></tr>
+          <tr><th scope="row">${T.comparatorRow.split(',')[0]} ${help(T.chartComparator, T.help.comparator).html}</th><td class="num">${fmt(FOSSIL_COMPARATOR, 2)}</td></tr>
           <tr><th scope="row">${T.ghgSavings}</th><td class="num">${pct(saving)}</td></tr>
         </tfoot>
       </table>
@@ -1067,6 +1051,21 @@ function initExplainer(): void {
 
 const staticEn = new Map<string, string>();
 
+/** Fills the "?" placeholders next to labels that live in index.html. */
+function renderStaticHelp(): void {
+  for (const slot of document.querySelectorAll<HTMLElement>('[data-help]')) {
+    const input = document.getElementById(slot.dataset.helpFor ?? '');
+    const label = input ? document.querySelector(`label[for="${input.id}"]`)?.textContent?.trim() : '';
+    const old = slot.querySelector('[id]')?.id;
+    const h = help(label || '', T.help[slot.dataset.help as HelpKey]);
+    slot.innerHTML = h.html;
+    if (input) {
+      const ids = (input.getAttribute('aria-describedby') ?? '').split(' ').filter((id) => id && id !== old);
+      input.setAttribute('aria-describedby', [h.id, ...ids].join(' '));
+    }
+  }
+}
+
 function applyStaticText(): void {
   for (const el of document.querySelectorAll<HTMLElement>('[data-i18n]')) {
     const key = el.dataset.i18n!;
@@ -1080,6 +1079,7 @@ function applyStaticText(): void {
   for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-lang]')) {
     btn.setAttribute('aria-pressed', String(btn.dataset.lang === lang));
   }
+  renderStaticHelp();
 }
 
 function setLang(next: Lang): void {
@@ -1093,7 +1093,6 @@ function setLang(next: Lang): void {
     const i = oldDefaults.indexOf(row.name);
     if (i >= 0) row.name = newDefaults[i];
   }
-  document.dispatchEvent(new Event('languagechange-app'));
   applyStaticText();
   buildSingleForm();
   buildEfuelForm();

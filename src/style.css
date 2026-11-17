@@ -1030,3 +1030,45 @@ h3 {
 #efuel-form > .hint {
   margin-bottom: 14px;
 }
+
+/* Help tooltips: small "?" next to labels */
+.help-btn {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 600 0.75rem var(--mono);
+  line-height: 1;
+  cursor: help;
+  position: relative;
+  vertical-align: middle;
+}
+.help-btn:hover,
+.help-btn:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* larger touch target without changing the layout */
+.help-btn::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+.label-row > [data-help] {
+  flex: none;
+  display: inline-flex;
+}
+.blend-foot .check + .help-btn {
+  margin-right: auto;
+}
+@media print {
+  .help-btn {
+    display: none;
+  }
+}
