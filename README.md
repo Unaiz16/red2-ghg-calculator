@@ -121,6 +121,6 @@ tests/           Vitest tests for the calculation module, presets and translatio
 
 ## About
 
-Built by Unaiz Ahmed Khan, chemical engineer in Berlin. Four years leading production and procurement at a renewable fuels producer, where he raised the GHG savings of the company's fuels to 78% (RED II methodology) by sourcing bio-based feedstocks. Environmental Protection Officer (TÜV Rheinland) and IPMA Level D certified project manager, both 2026.
+Built by Unaiz Ahmed Khan, chemical engineer in Berlin. Years of experience leading production and procurement at a renewable fuels producer, where he raised the GHG savings of the company's fuels to 78% (RED II methodology) by sourcing bio-based feedstocks. Environmental Protection Officer (TÜV Rheinland) and IPMA Level D certified project manager.
 
 [linkedin.com/in/unaizkhan](https://www.linkedin.com/in/unaizkhan) · [github.com/Unaiz16](https://github.com/Unaiz16)

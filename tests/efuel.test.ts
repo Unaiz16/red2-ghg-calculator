@@ -59,7 +59,8 @@ describe('e-fuel wording follows the verified legal text', () => {
     expect(DE.efuelTerms.eccs.label).toBe(
       'Emissionseinsparungen durch CO₂-Abscheidung und geologische CO₂-Speicherung',
     );
-    expect(DE.efuelUnit).toBe('g CO₂-Äq./MJ');
+    expect(DE.unit).toBe('g CO₂-Äq./MJ');
+    expect(EN.unit).toBe('gCO₂eq/MJ');
   });
 
   it('names the legal basis of the 70 % minimum', () => {

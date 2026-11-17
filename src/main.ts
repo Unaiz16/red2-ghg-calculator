@@ -25,7 +25,6 @@ import { PRESETS } from './presets';
 import { STATIC_DE, detectLang, messages, type HelpKey, type Lang } from './i18n';
 import { TERMS, type TermInfo } from './terms';
 
-const UNIT = 'gCO₂eq/MJ';
 let lang: Lang = detectLang(location.search, navigator.language);
 let T = messages(lang);
 
@@ -142,7 +141,7 @@ interface ChartSpec {
 }
 
 function renderChart(spec: ChartSpec): string {
-  const unit = spec.unit ?? UNIT;
+  const unit = spec.unit ?? T.unit;
   const added = spec.segments.filter((sg) => sg.value > 0);
   const subtracted = spec.segments.filter((sg) => sg.value < 0);
   const gross = added.reduce((sum, sg) => sum + sg.value, 0);
@@ -543,7 +542,7 @@ function renderSingle(): void {
     <h3>${T.result}</h3>
     <div class="headline">
       <div class="big"><span class="big-label">${T.ghgSavings} ${help(T.ghgSavings, T.help.savings).html}</span><span class="big-num">${animNum('s-saving', saving, 1, true)}</span></div>
-      <div class="big"><span class="big-label">${T.totalEmissions} ${help(T.totalEmissions, T.help.totalE).html}</span><span class="big-num">${animNum('s-e', e, 2)} <span class="unit">${UNIT}</span></span></div>
+      <div class="big"><span class="big-label">${T.totalEmissions} ${help(T.totalEmissions, T.help.totalE).html}</span><span class="big-num">${animNum('s-e', e, 2)} <span class="unit">${T.unit}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}</p>
     ${savingsNote(e)}
@@ -551,7 +550,7 @@ function renderSingle(): void {
     <div class="table-wrap">
       <table class="breakdown">
         <caption>${T.breakdown}</caption>
-        <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${UNIT}</th></tr></thead>
+        <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${T.unit}</th></tr></thead>
         <tbody>${rows}</tbody>
         <tfoot>
           <tr><th scope="row">${T.eTotal} ${help(T.eTotal, T.help.totalE).html}</th><td class="num">${fmt(e, 2)}</td></tr>
@@ -561,7 +560,7 @@ function renderSingle(): void {
       </table>
     </div>
     ${renderChart({
-      caption: T.chartTermsCaption(UNIT),
+      caption: T.chartTermsCaption(T.unit),
       addedLabel: T.chartEmissions,
       totalLabel: T.eTotal,
       segments,
@@ -577,7 +576,7 @@ function renderSingle(): void {
   lastSingleCopy = [
     `${T.copyTitleSingle}, ${T.label}`,
     preset ? T.copyPathway(T.presets[preset.id]) : '',
-    `E = ${fmt(e, 2)} ${UNIT} (${termText(EMISSION_TERMS, '+').replace(/^\+ /, '')} ${termText(CREDIT_TERMS, '−')})`,
+    `E = ${fmt(e, 2)} ${T.unit} (${termText(EMISSION_TERMS, '+').replace(/^\+ /, '')} ${termText(CREDIT_TERMS, '−')})`,
     `${T.ghgSavings} = (94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}`,
     e < 0 ? T.netNegativeCopy : '',
     thresholdLine,
@@ -692,7 +691,7 @@ function renderBlendRows(): void {
             <input type="number" id="b-energy-${i}" data-field="energy" inputmode="decimal" min="0" step="any" value="${esc(row.energy)}" aria-describedby="${hEnergy.id} b-err-${i}" />
           </div>
           <div class="field">
-            <div class="label-row"><label for="b-e-${i}">E (${UNIT})</label>${hE.html}</div>
+            <div class="label-row"><label for="b-e-${i}">E (${T.unit})</label>${hE.html}</div>
             <input type="number" id="b-e-${i}" data-field="e" inputmode="decimal" step="0.1" value="${row.fossil ? '94' : esc(row.e)}" ${row.fossil ? 'disabled' : ''} aria-describedby="${hE.id} b-err-${i}" />
           </div>
         </div>
@@ -766,7 +765,7 @@ function renderBlend(): void {
     <h3>${T.blendResult}</h3>
     <div class="headline">
       <div class="big"><span class="big-label">${T.blendSavings} ${help(T.blendSavings, T.help.blendSavings).html}</span><span class="big-num">${animNum('b-saving', result.savingsPercent, 1, true)}</span></div>
-      <div class="big"><span class="big-label">${T.blendIntensity} ${help(T.blendIntensity, T.help.blendIntensity).html}</span><span class="big-num">${animNum('b-e', result.intensity, 2)} <span class="unit">${UNIT}</span></span></div>
+      <div class="big"><span class="big-label">${T.blendIntensity} ${help(T.blendIntensity, T.help.blendIntensity).html}</span><span class="big-num">${animNum('b-e', result.intensity, 2)} <span class="unit">${T.unit}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(result.intensity, 2)}) / 94 = ${pct(result.savingsPercent)}</p>
     <p class="compare">${T.blendCompare(pct(result.bioSharePercent), pct(result.savingsPercent))}</p>
@@ -774,7 +773,7 @@ function renderBlend(): void {
     <div class="table-wrap">
       <table class="breakdown">
         <caption>${T.components}</caption>
-        <thead><tr><th scope="col">${T.componentCol}</th><th scope="col" class="num">${T.energyCol}<br />MJ</th><th scope="col" class="num">${T.shareCol}<br />%</th><th scope="col" class="num">E<br />${UNIT}</th><th scope="col" class="num">${T.savingCol}<br />%</th></tr></thead>
+        <thead><tr><th scope="col">${T.componentCol}</th><th scope="col" class="num">${T.energyCol}<br />MJ</th><th scope="col" class="num">${T.shareCol}<br />%</th><th scope="col" class="num">E<br />${T.unit}</th><th scope="col" class="num">${T.savingCol}<br />%</th></tr></thead>
         <tbody>${rows}</tbody>
         <tfoot><tr><th scope="row">${T.blend}</th><td class="num">${fmtInput(result.totalEnergyMJ)}</td><td class="num">${fmt(100)}</td><td class="num">${fmt(result.intensity, 2)}</td><td class="num">${fmt(result.savingsPercent)}</td></tr></tfoot>
       </table>
@@ -794,7 +793,7 @@ function renderBlend(): void {
   lastBlendCopy = [
     `${T.copyTitleBlend}, ${T.label}`,
     ...components.map((c) => T.copyComponent(c.name, c.fossil, fmtInput(c.energyMJ), fmt(c.e))),
-    `${T.copyIntensity} = ${fmt(result.intensity, 2)} ${UNIT}`,
+    `${T.copyIntensity} = ${fmt(result.intensity, 2)} ${T.unit}`,
     `${T.ghgSavings} = (94 − ${fmt(result.intensity, 2)}) / 94 = ${pct(result.savingsPercent)}`,
     `${T.copyBio} = ${pct(result.bioSharePercent)}`,
     `${T.link}: ${shareUrl()}`,
@@ -944,7 +943,7 @@ function renderEfuel(): void {
     <h3>${T.efuelResult}</h3>
     <div class="headline">
       <div class="big"><span class="big-label">${T.ghgSavings} ${help(T.ghgSavings, T.help.savings).html}</span><span class="big-num">${animNum('f-saving', saving, 1, true)}</span></div>
-      <div class="big"><span class="big-label">${T.totalEmissions} ${help(T.totalEmissions, T.help.totalE).html}</span><span class="big-num">${animNum('f-e', e, 2)} <span class="unit">${T.efuelUnit}</span></span></div>
+      <div class="big"><span class="big-label">${T.totalEmissions} ${help(T.totalEmissions, T.help.totalE).html}</span><span class="big-num">${animNum('f-e', e, 2)} <span class="unit">${T.unit}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}</p>
     ${savingsNote(e)}
@@ -955,7 +954,7 @@ function renderEfuel(): void {
     <div class="table-wrap">
       <table class="breakdown">
         <caption>${T.breakdown}</caption>
-        <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${T.efuelUnit}</th></tr></thead>
+        <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${T.unit}</th></tr></thead>
         <tbody>${rows}</tbody>
         <tfoot>
           <tr><th scope="row">${T.eTotal} ${help(T.eTotal, T.help.totalE).html}</th><td class="num">${fmt(e, 2)}</td></tr>
@@ -966,8 +965,8 @@ function renderEfuel(): void {
     </div>
     <p class="hint">${T.efuelBreakdownNote}</p>
     ${renderChart({
-      caption: T.chartTermsCaption(T.efuelUnit),
-      unit: T.efuelUnit,
+      caption: T.chartTermsCaption(T.unit),
+      unit: T.unit,
       addedLabel: T.chartEmissions,
       totalLabel: T.eTotal,
       segments,
@@ -980,7 +979,7 @@ function renderEfuel(): void {
 
   lastEfuelCopy = [
     `${T.copyTitleEfuel}, ${T.efuelLabel}`,
-    `E = ${fmt(e, 2)} ${T.efuelUnit} (ei ${fmtInput(inputs.ei)} + ep ${fmtInput(inputs.ep)} + etd ${fmtInput(inputs.etd)} + eu ${fmtInput(inputs.eu)} − eccs ${fmtInput(inputs.eccs)})`,
+    `E = ${fmt(e, 2)} ${T.unit} (ei ${fmtInput(inputs.ei)} + ep ${fmtInput(inputs.ep)} + etd ${fmtInput(inputs.etd)} + eu ${fmtInput(inputs.eu)} − eccs ${fmtInput(inputs.eccs)})`,
     `${T.ghgSavings} = (94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}`,
     T.efuelThresholdCopy(pass ? T.passCopy : T.failCopy, gapText),
     `${T.link}: ${shareUrl()}`,

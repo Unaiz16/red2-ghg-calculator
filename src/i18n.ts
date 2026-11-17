@@ -3,8 +3,8 @@ import type { EfuelKey, TermKey } from './calc';
 export type Lang = 'en' | 'de';
 
 const UNIT = 'gCO₂eq/MJ';
-/** Unit as written in the German text of Delegated Regulation (EU) 2023/1185. */
-const UNIT_DE_EFUEL = 'g CO₂-Äq./MJ';
+/** German unit, as written in the German text of Delegated Regulation (EU) 2023/1185. Used on the whole German page. */
+const UNIT_DE = 'g CO₂-Äq./MJ';
 
 export type HelpKey =
   | 'preset'
@@ -30,6 +30,8 @@ interface TermText {
 /** All text produced by the script. Static page text lives in index.html (EN) and STATIC_DE. */
 export interface Messages {
   decimal: string;
+  /** Emission intensity unit in this language. */
+  unit: string;
   /** Formats an already formatted number as a percentage. */
   percent: (n: string) => string;
   docTitle: string;
@@ -128,8 +130,6 @@ export interface Messages {
   efuelBreakdownNote: string;
   copyTitleEfuel: string;
   efuelLabel: string;
-  /** Unit as written in the e-fuel Regulation in this language. */
-  efuelUnit: string;
   efuelComparatorRow: string;
   // status
   inputsReset: string;
@@ -143,6 +143,7 @@ export interface Messages {
 
 export const EN: Messages = {
   decimal: '.',
+  unit: UNIT,
   percent: (n) => `${n}%`,
   docTitle: 'GHG Savings Calculator for Renewable Fuels (EU RED)',
   metaDescription:
@@ -359,7 +360,6 @@ export const EN: Messages = {
   efuelBreakdownNote: 'No default values exist for e-fuels. All values are your own inputs.',
   copyTitleEfuel: 'E-fuel GHG savings (RFNBO / recycled carbon fuel)',
   efuelLabel: 'Commission Delegated Regulation (EU) 2023/1185, Annex Part A points 1 and 2',
-  efuelUnit: UNIT,
   efuelComparatorRow: 'Fossil fuel comparator E<sub>F</sub>, Part A point 2',
   inputsReset: 'Inputs reset.',
   blendReset: 'Blend reset.',
@@ -372,6 +372,7 @@ export const EN: Messages = {
 
 export const DE: Messages = {
   decimal: ',',
+  unit: UNIT_DE,
   percent: (n) => `${n} %`,
   docTitle: 'THG-Einsparungsrechner für erneuerbare Kraftstoffe (EU RED)',
   metaDescription:
@@ -439,7 +440,7 @@ export const DE: Messages = {
   customValues: 'Eigene Werte',
   presetPick: 'Wählen Sie einen Herstellungsweg, um seine Standardwerte einzutragen, oder geben Sie eigene Werte ein.',
   presetNote: (sum, total, saving) =>
-    `Standardwerte nach Teil D: ${sum} = ${total} ${UNIT}. Standardwert der Einsparung nach Teil A: ${saving}.`,
+    `Standardwerte nach Teil D: ${sum} = ${total} ${UNIT_DE}. Standardwert der Einsparung nach Teil A: ${saving}.`,
   presetElWarning: 'Standardwerte dürfen nur verwendet werden, wenn e<sub>l</sub> null oder kleiner ist.',
   errNumber: 'Bitte eine Zahl eingeben.',
   errNonNegative: 'Bitte 0 oder mehr eingeben.',
@@ -461,7 +462,7 @@ export const DE: Messages = {
     `Mindesteinsparung nach Art. 29 Abs. 10 Buchst. ${point}, Inbetriebnahme ${date}: ${percent} %: ${outcome} (${gap})`,
   netNegative:
     '<strong>Netto-negative Emissionen.</strong> E liegt unter null, weil die Einsparterme größer sind als die Emissionen. Die Einsparung liegt deshalb über 100 %. Prüfen Sie, ob die Werte für Bodenkohlenstoff und CO₂-Abscheidung belegt sind.',
-  noSaving: `<strong>Keine Einsparung.</strong> E liegt über dem fossilen Vergleichswert von 94 ${UNIT}. Dieser Herstellungsweg verursacht mehr Emissionen als der fossile Kraftstoff, den er ersetzt.`,
+  noSaving: `<strong>Keine Einsparung.</strong> E liegt über dem fossilen Vergleichswert von 94 ${UNIT_DE}. Dieser Herstellungsweg verursacht mehr Emissionen als der fossile Kraftstoff, den er ersetzt.`,
   netNegativeCopy: 'Hinweis: netto-negative Emissionen, Einsparung über 100 %.',
   breakdown: 'Aufschlüsselung nach Termen',
   term: 'Term',
@@ -506,12 +507,12 @@ export const DE: Messages = {
   shareCol: 'Anteil',
   fossilTag: '(fossil)',
   blend: 'Mischung',
-  chartBlendCaption: `Beitrag der einzelnen Komponenten zur Mischung, ${UNIT}`,
-  tipComponent: (name, share, e) => `${name}, ${share} der Energie mit ${e} ${UNIT}, Beitrag`,
+  chartBlendCaption: `Beitrag der einzelnen Komponenten zur Mischung, ${UNIT_DE}`,
+  tipComponent: (name, share, e) => `${name}, ${share} der Energie mit ${e} ${UNIT_DE}, Beitrag`,
   blendNoThreshold:
     'Die Mindesteinsparung nach Art. 29 Abs. 10 gilt für den Biokraftstoff selbst, nicht für eine Mischung mit fossilem Kraftstoff. Deshalb wird hier kein Prüfergebnis angezeigt.',
   copyTitleBlend: 'THG-Einsparung einer Mischung',
-  copyComponent: (name, fossil, mj, e) => `- ${name}${fossil ? ' (fossil)' : ''}: ${mj} MJ mit ${e} ${UNIT}`,
+  copyComponent: (name, fossil, mj, e) => `- ${name}${fossil ? ' (fossil)' : ''}: ${mj} MJ mit ${e} ${UNIT_DE}`,
   copyIntensity: 'Energiegewichtete Intensität',
   copyBio: 'Bioanteil nach Energie',
   defaultBio: 'Biokraftstoff',
@@ -541,11 +542,11 @@ export const DE: Messages = {
     savings: 'Wie viel weniger Treibhausgase dieser Kraftstoff je Megajoule verursacht als der fossile Vergleichswert.',
     totalE: 'Alle Emissionen der Lieferkette abzüglich der Einsparterme, je Megajoule Kraftstoff.',
     threshold: 'Die Mindesteinsparung, die die Richtlinie für diesen Kraftstoff verlangt.',
-    comparator: 'Die Emissionen des fossilen Kraftstoffs, mit dem der erneuerbare Kraftstoff verglichen wird; festgelegt auf 94 gCO₂eq/MJ.',
+    comparator: 'Die Emissionen des fossilen Kraftstoffs, mit dem der erneuerbare Kraftstoff verglichen wird; festgelegt auf 94 g CO₂-Äq./MJ.',
     blendName: 'Eine Bezeichnung für diese Komponente oder dieses Lieferantenangebot.',
     blendEnergy: 'Wie viel Energie diese Komponente zur Mischung beiträgt, in Megajoule.',
     blendE: 'Die Emissionen dieser Komponente je Megajoule.',
-    blendFossil: 'Für fossilen Kraftstoff ankreuzen; er zählt immer mit 94 gCO₂eq/MJ.',
+    blendFossil: 'Für fossilen Kraftstoff ankreuzen; er zählt immer mit 94 g CO₂-Äq./MJ.',
     blendSavings: 'Die Einsparung der gesamten Mischung gegenüber dem fossilen Vergleichswert.',
     blendIntensity: 'Die durchschnittlichen Emissionen der Mischung, gewichtet nach der Energie der Komponenten.',
     efuelThreshold: 'RFNBO müssen nach Art. 29a Abs. 1 RED mindestens 70\u00a0% einsparen, wiederverwertete kohlenstoffhaltige Kraftstoffe nach Art. 29a Abs. 2 RED und Art. 2 der Verordnung; das heißt höchstens 28,2 g CO₂-Äq./MJ Kraftstoff.',
@@ -584,13 +585,12 @@ export const DE: Messages = {
   },
   efuelResult: 'Ergebnis E-Fuel',
   efuelVerdict: (pass) =>
-    `${pass ? 'Erfüllt' : 'Erfüllt nicht'} die Mindesteinsparung von 70\u00a0%: RFNBO nach Art. 29a Abs. 1 RED, wiederverwertete kohlenstoffhaltige Kraftstoffe nach Art. 29a Abs. 2 RED und Art. 2 der Delegierten Verordnung (EU) 2023/1185 (E höchstens 28,20 ${UNIT_DE_EFUEL}).`,
+    `${pass ? 'Erfüllt' : 'Erfüllt nicht'} die Mindesteinsparung von 70\u00a0%: RFNBO nach Art. 29a Abs. 1 RED, wiederverwertete kohlenstoffhaltige Kraftstoffe nach Art. 29a Abs. 2 RED und Art. 2 der Delegierten Verordnung (EU) 2023/1185 (E höchstens 28,20 ${UNIT_DE}).`,
   efuelThresholdCopy: (outcome, gap) =>
     `Mindesteinsparung 70 % (RFNBO: Art. 29a Abs. 1 RED; wiederverwertete kohlenstoffhaltige Kraftstoffe: Art. 29a Abs. 2 RED und Art. 2 der Delegierten Verordnung (EU) 2023/1185): ${outcome} (${gap})`,
   efuelBreakdownNote: 'Für E-Fuels gibt es keine Standardwerte. Alle Werte sind Ihre eigenen Eingaben.',
   copyTitleEfuel: 'THG-Einsparung eines E-Fuels (RFNBO / wiederverwertete kohlenstoffhaltige Kraftstoffe)',
   efuelLabel: 'Delegierte Verordnung (EU) 2023/1185 der Kommission, Anhang Teil A Nummern 1 und 2',
-  efuelUnit: UNIT_DE_EFUEL,
   efuelComparatorRow: 'Fossiler Vergleichswert E<sub>F</sub>, Teil A Nummer 2',
   inputsReset: 'Eingaben zurückgesetzt.',
   blendReset: 'Mischung zurückgesetzt.',
@@ -623,16 +623,16 @@ export const STATIC_DE: Record<string, string> = {
   'mode-efuel': 'E-Fuel',
   inputs: 'Eingaben',
   'preset-label': 'Voreinstellung (Standardwerte nach Anhang V)',
-  'preset-source': `Quelle: Anhang V Teile A und D, Richtlinie (EU) 2018/2001, konsolidierte Fassung <a href="${EURLEX_DE}" target="_blank" rel="noopener">02018L2001-20240716</a>. Disaggregierte Standardwerte in gCO<sub>2</sub>eq/MJ.`,
-  'legend-emissions': 'Emissionen <span class="legend-note">werden addiert, gCO<sub>2</sub>eq/MJ</span>',
-  'legend-credits': 'Emissionseinsparungen <span class="legend-note">werden abgezogen, gCO<sub>2</sub>eq/MJ</span>',
+  'preset-source': `Quelle: Anhang V Teile A und D, Richtlinie (EU) 2018/2001, konsolidierte Fassung <a href="${EURLEX_DE}" target="_blank" rel="noopener">02018L2001-20240716</a>. Disaggregierte Standardwerte in g CO<sub>2</sub>-Äq./MJ.`,
+  'legend-emissions': 'Emissionen <span class="legend-note">werden addiert, g CO<sub>2</sub>-Äq./MJ</span>',
+  'legend-credits': 'Emissionseinsparungen <span class="legend-note">werden abgezogen, g CO<sub>2</sub>-Äq./MJ</span>',
   'date-label': 'Datum der Inbetriebnahme der Anlage',
   'date-hint':
     'Bestimmt die Mindesteinsparung nach Art. 29 Abs. 10 Buchst. a–c: 50 % (in Betrieb am oder vor dem 05.10.2015), 60 % (06.10.2015–31.12.2020), 65 % (ab 01.01.2021).',
   'reset-single': 'Eingaben zurücksetzen',
   'blend-heading': 'Mischung / Lieferantenangebote vergleichen',
   'blend-hint':
-    'Bis zu 5 Komponenten. Geben Sie für jede die Energiemenge (MJ) und die Emissionsintensität E (gCO<sub>2</sub>eq/MJ) ein. Fossile Komponenten zählen mit 94. Um Lieferantenangebote zu vergleichen, geben Sie jedes Angebot als Komponente ein: Die Tabelle zeigt die Einsparung jedes Angebots und der Mischung.',
+    'Bis zu 5 Komponenten. Geben Sie für jede die Energiemenge (MJ) und die Emissionsintensität E (g CO<sub>2</sub>-Äq./MJ) ein. Fossile Komponenten zählen mit 94. Um Lieferantenangebote zu vergleichen, geben Sie jedes Angebot als Komponente ein: Die Tabelle zeigt die Einsparung jedes Angebots und der Mischung.',
   'reset-blend': 'Mischung zurücksetzen',
   'efuel-heading': 'Eingaben E-Fuel (RFNBO / wiederverwertete kohlenstoffhaltige Kraftstoffe)',
   'efuel-hint':
@@ -665,11 +665,11 @@ export const STATIC_DE: Record<string, string> = {
           <dl id="efuel-term-list" class="term-list"></dl>`,
   'explainer-heading': 'So lesen Sie das Ergebnis',
   'bio-card': `<h3>Bioanteil ist nicht gleich THG-Einsparung</h3>
-          <p>Der Bioanteil sagt, woher der Kohlenstoff im Kraftstoff stammt. Die THG-Einsparung sagt, wie viel weniger Treibhausgase die gesamte Lieferkette je Megajoule verursacht als der fossile Vergleichswert von 94 gCO<sub>2</sub>eq/MJ. Das sind zwei verschiedene Fragen.</p>
-          <p>Anbau oder Sammlung des Rohstoffs, Verarbeitung und Transport verursachen Emissionen. Ein Kraftstoff, der nach Energie zu 99 % biogen ist, mit 20 gCO<sub>2</sub>eq/MJ hergestellt und mit 1 % fossilem Kraftstoff gemischt wird, kommt auf 20,74 gCO<sub>2</sub>eq/MJ und spart 77,9 % ein, nicht 99 %. Der Modus „Mischung“ oben startet mit genau diesem Beispiel.</p>
+          <p>Der Bioanteil sagt, woher der Kohlenstoff im Kraftstoff stammt. Die THG-Einsparung sagt, wie viel weniger Treibhausgase die gesamte Lieferkette je Megajoule verursacht als der fossile Vergleichswert von 94 g CO<sub>2</sub>-Äq./MJ. Das sind zwei verschiedene Fragen.</p>
+          <p>Anbau oder Sammlung des Rohstoffs, Verarbeitung und Transport verursachen Emissionen. Ein Kraftstoff, der nach Energie zu 99 % biogen ist, mit 20 g CO<sub>2</sub>-Äq./MJ hergestellt und mit 1 % fossilem Kraftstoff gemischt wird, kommt auf 20,74 g CO<sub>2</sub>-Äq./MJ und spart 77,9 % ein, nicht 99 %. Der Modus „Mischung“ oben startet mit genau diesem Beispiel.</p>
           <p>Am wichtigsten ist der Rohstoff. Mit den Standardwerten nach Anhang V spart Biodiesel aus Altspeiseöl 84 % ein, Biodiesel aus Raps dagegen 47 %. Der Hauptgrund: Einem Abfall werden keine Anbauemissionen zugerechnet.</p>
           <p class="formula" aria-label="Formel">E = e<sub>ec</sub> + e<sub>l</sub> + e<sub>p</sub> + e<sub>td</sub> + e<sub>u</sub> − e<sub>sca</sub> − e<sub>ccs</sub> − e<sub>ccr</sub><br />Einsparung = (94 − E) / 94</p>
-          <p class="hint">Anhang V Teil C Nummer 1 Buchstabe a und Nummer 19 (fossiler Vergleichswert E<sub>F(t)</sub> = 94 gCO<sub>2</sub>eq/MJ).</p>`,
+          <p class="hint">Anhang V Teil C Nummer 1 Buchstabe a und Nummer 19 (fossiler Vergleichswert E<sub>F(t)</sub> = 94 g CO<sub>2</sub>-Äq./MJ).</p>`,
   'terms-heading': 'Was die einzelnen Terme bedeuten',
   'good-card': `<h3>Gut zu wissen</h3>
           <ul>
@@ -681,7 +681,7 @@ export const STATIC_DE: Record<string, string> = {
           </ul>`,
   'about-heading': 'Über das Projekt',
   'about-text':
-    'Erstellt von Unaiz Ahmed Khan, Chemieingenieur in Berlin. Vier Jahre Leitung von Produktion und Einkauf bei einem Hersteller erneuerbarer Kraftstoffe; dort hat er die THG-Einsparung der Kraftstoffe des Unternehmens durch die Beschaffung biobasierter Rohstoffe auf 78 % gesteigert (RED-II-Methodik). Umweltschutzbeauftragter (TÜV Rheinland) und zertifizierter Projektmanager nach IPMA Level D, beides 2026.',
+    'Erstellt von Unaiz Ahmed Khan, Chemieingenieur in Berlin. Mehrjährige Erfahrung in der Leitung von Produktion und Einkauf bei einem Hersteller erneuerbarer Kraftstoffe; dort hat er die THG-Einsparung der Kraftstoffe des Unternehmens durch die Beschaffung biobasierter Rohstoffe auf 78\u00a0% gesteigert (RED-II-Methodik). Umweltschutzbeauftragter (TÜV Rheinland) und zertifizierter Projektmanager nach IPMA Level D.',
   'footer-source': `Rechtsquelle: Richtlinie (EU) 2018/2001, geändert durch Richtlinie (EU) 2023/2413, konsolidierte Fassung vom 16.07.2024, <a href="${EURLEX_DE}" target="_blank" rel="noopener">CELEX 02018L2001-20240716 auf EUR-Lex</a>.`,
   'footer-disclaimer':
     'Lernwerkzeug. Nicht für Zertifizierung, Audits oder offizielle THG-Berichterstattung. Verwenden Sie zertifizierte Werte und die Regeln Ihres Zertifizierungssystems.',
