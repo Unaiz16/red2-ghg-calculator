@@ -137,9 +137,12 @@ interface ChartSpec {
   total: number;
   /** Minimum saving in percent; draws the threshold line when set. */
   thresholdPercent?: number;
+  /** Unit shown in the chart; defaults to gCO₂eq/MJ. */
+  unit?: string;
 }
 
 function renderChart(spec: ChartSpec): string {
+  const unit = spec.unit ?? UNIT;
   const added = spec.segments.filter((sg) => sg.value > 0);
   const subtracted = spec.segments.filter((sg) => sg.value < 0);
   const gross = added.reduce((sum, sg) => sum + sg.value, 0);
@@ -149,7 +152,7 @@ function renderChart(spec: ChartSpec): string {
   const css = (v: number) => `${v.toFixed(3)}%`;
 
   const seg = (sg: Segment, from: number, to: number, cls: string) => {
-    const tip = `${sg.name}: ${fmt(sg.value, 2)} ${UNIT}`;
+    const tip = `${sg.name}: ${fmt(sg.value, 2)} ${unit}`;
     return `<span class="seg ${cls}" style="left:${css(x(from))};width:${css(x(to) - x(from))}" tabindex="0" role="img" aria-label="${esc(tip)}" data-tip="${esc(tip)}"></span>`;
   };
 
@@ -170,7 +173,7 @@ function renderChart(spec: ChartSpec): string {
     return seg(sg, back, to, 'minus');
   });
 
-  const totalTip = `${spec.totalLabel}: ${fmt(spec.total, 2)} ${UNIT}`;
+  const totalTip = `${spec.totalLabel}: ${fmt(spec.total, 2)} ${unit}`;
   const totalSeg = `<span class="seg total" style="left:${css(x(Math.min(0, spec.total)))};width:${css(Math.abs(x(spec.total) - x(0)))}" tabindex="0" role="img" aria-label="${esc(totalTip)}" data-tip="${esc(totalTip)}"></span>`;
 
   const limit =
@@ -209,15 +212,15 @@ function renderChart(spec: ChartSpec): string {
         ${row(esc(spec.totalLabel), totalSeg, 'net')}
         <div class="plot-lines" aria-hidden="true"><span class="plot-label"></span><span class="track">${lines}</span></div>
       </div>
-      <div class="plot-row axis" aria-hidden="true"><span class="plot-label">${UNIT}</span><span class="track">
+      <div class="plot-row axis" aria-hidden="true"><span class="plot-label">${unit}</span><span class="track">
         <span class="tick" style="left:${css(x(lo))}">${fmtInput(lo)}</span>
         <span class="tick" style="left:${css(x(mid))}">${fmtInput(mid)}</span>
         <span class="tick" style="left:${css(x(hi / 1.04))}">${fmtInput(hi / 1.04)}</span>
       </span></div>
     </div>
     <ul class="chart-legend">${legend}</ul>
-    <p class="hint">${T.chartHintSolid}${
-      limit === undefined ? '' : ` ${T.chartHintDashed(fmt(limit, 2), spec.thresholdPercent!)}`
+    <p class="hint">${T.chartHintSolid(unit)}${
+      limit === undefined ? '' : ` ${T.chartHintDashed(fmt(limit, 2), spec.thresholdPercent!, unit)}`
     } ${T.chartHintTip}</p>
   </figure>`;
 }
@@ -550,7 +553,7 @@ function renderSingle(): void {
       </table>
     </div>
     ${renderChart({
-      caption: T.chartTermsCaption,
+      caption: T.chartTermsCaption(UNIT),
       addedLabel: T.chartEmissions,
       totalLabel: T.eTotal,
       segments,
@@ -933,7 +936,7 @@ function renderEfuel(): void {
     <h3>${T.efuelResult}</h3>
     <div class="headline">
       <div class="big"><span class="big-label">${T.ghgSavings} ${help(T.ghgSavings, T.help.savings).html}</span><span class="big-num">${animNum('f-saving', saving, 1, true)}</span></div>
-      <div class="big"><span class="big-label">${T.totalEmissions} ${help(T.totalEmissions, T.help.totalE).html}</span><span class="big-num">${animNum('f-e', e, 2)} <span class="unit">${UNIT}</span></span></div>
+      <div class="big"><span class="big-label">${T.totalEmissions} ${help(T.totalEmissions, T.help.totalE).html}</span><span class="big-num">${animNum('f-e', e, 2)} <span class="unit">${T.efuelUnit}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}</p>
     ${savingsNote(e)}
@@ -944,18 +947,19 @@ function renderEfuel(): void {
     <div class="table-wrap">
       <table class="breakdown">
         <caption>${T.breakdown}</caption>
-        <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${UNIT}</th></tr></thead>
+        <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${T.efuelUnit}</th></tr></thead>
         <tbody>${rows}</tbody>
         <tfoot>
           <tr><th scope="row">${T.eTotal} ${help(T.eTotal, T.help.totalE).html}</th><td class="num">${fmt(e, 2)}</td></tr>
-          <tr><th scope="row">${T.comparatorRow.split(',')[0]} ${help(T.chartComparator, T.help.comparator).html}</th><td class="num">${fmt(FOSSIL_COMPARATOR, 2)}</td></tr>
+          <tr><th scope="row">${T.efuelComparatorRow} ${help(T.chartComparator, T.help.comparator).html}</th><td class="num">${fmt(FOSSIL_COMPARATOR, 2)}</td></tr>
           <tr><th scope="row">${T.ghgSavings}</th><td class="num">${pct(saving)}</td></tr>
         </tfoot>
       </table>
     </div>
     <p class="hint">${T.efuelBreakdownNote}</p>
     ${renderChart({
-      caption: T.chartTermsCaption,
+      caption: T.chartTermsCaption(T.efuelUnit),
+      unit: T.efuelUnit,
       addedLabel: T.chartEmissions,
       totalLabel: T.eTotal,
       segments,
@@ -968,7 +972,7 @@ function renderEfuel(): void {
 
   lastEfuelCopy = [
     `${T.copyTitleEfuel}, ${T.efuelLabel}`,
-    `E = ${fmt(e, 2)} ${UNIT} (ei ${fmtInput(inputs.ei)} + ep ${fmtInput(inputs.ep)} + etd ${fmtInput(inputs.etd)} + eu ${fmtInput(inputs.eu)} − eccs ${fmtInput(inputs.eccs)})`,
+    `E = ${fmt(e, 2)} ${T.efuelUnit} (ei ${fmtInput(inputs.ei)} + ep ${fmtInput(inputs.ep)} + etd ${fmtInput(inputs.etd)} + eu ${fmtInput(inputs.eu)} − eccs ${fmtInput(inputs.eccs)})`,
     `${T.ghgSavings} = (94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}`,
     T.efuelThresholdCopy(pass ? T.passCopy : T.failCopy, gapText),
     `${T.link}: ${shareUrl()}`,

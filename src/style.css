@@ -1072,3 +1072,18 @@ h3 {
     display: none;
   }
 }
+
+.prose h4 {
+  margin: 18px 0 8px;
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+.prose ul + p,
+.prose ul + h4 {
+  margin-top: 12px;
+}
+.prose .example {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--note);
+}

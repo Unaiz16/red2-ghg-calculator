@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DE, EN } from '../src/i18n';
 import {
   EFUEL_MAX_EMISSIONS,
   EFUEL_MIN_SAVINGS_PERCENT,
@@ -39,5 +40,32 @@ describe('70 % minimum against the 94 gCO2eq/MJ comparator', () => {
     expect(meetsEfuelMinimum(5)).toBe(true);
     expect(meetsEfuelMinimum(150)).toBe(false);
     expect(savingsPercent(150)).toBeLessThan(0);
+  });
+});
+
+describe('e-fuel wording follows the verified legal text', () => {
+  it('eu is the total combustion emissions, with the carbon credit in ei', () => {
+    expect(EN.efuelTerms.eu.hint).toContain('Total combustion emissions');
+    expect(EN.efuelTerms.eu.hint).toContain('credited in eᵢ');
+    expect(EN.efuelTerms.ei.hint).toContain('eᵢ = eᵢ elastic + eᵢ rigid − e ex-use');
+    expect(EN.helpEfuelTerms.eu).not.toMatch(/not from an eligible source/);
+  });
+
+  it('uses the German terms of the Regulation', () => {
+    expect(DE.efuelTerms.ei.label).toBe('Emissionen aus der Versorgung mit Einsatzstoffen');
+    expect(DE.efuelTerms.ep.label).toBe('Emissionen aus der Verarbeitung');
+    expect(DE.efuelTerms.etd.label).toBe('Emissionen aus Transport und Verteilung');
+    expect(DE.efuelTerms.eu.label).toBe('Emissionen aus der Verbrennung des Kraftstoffs bei der Endnutzung');
+    expect(DE.efuelTerms.eccs.label).toBe(
+      'Emissionseinsparungen durch CO₂-Abscheidung und geologische CO₂-Speicherung',
+    );
+    expect(DE.efuelUnit).toBe('g CO₂-Äq./MJ');
+  });
+
+  it('names the legal basis of the 70 % minimum', () => {
+    for (const dict of [EN, DE]) {
+      expect(dict.efuelVerdict(true)).toMatch(/29a/);
+      expect(dict.help.efuelThreshold).toMatch(/29a/);
+    }
   });
 });

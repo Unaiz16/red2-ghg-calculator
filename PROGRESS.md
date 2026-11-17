@@ -59,78 +59,67 @@ Handover file so another session can continue. Update after every step.
       `aria-describedby`. The esca "i" button is replaced by its "?" with the same
       RED III text.
 
-## To verify (owner checks on EUR-Lex before PR 3 is marked ready)
+## Verified 17.11.2026 (EUR-Lex)
 
-Written from memory of the legal texts, not checked against EUR-Lex in this session.
+Checked by the owner against Commission Delegated Regulation (EU) 2023/1185 (original
+OJ text, not amended) and the RED consolidated text 02018L2001-20240716. All points
+below are applied in hints, explainer and "?" help sentences, EN and DE.
 
-E-fuel mode, Commission Delegated Regulation (EU) 2023/1185:
+1. **Citations.** Formula E = ei + ep + etd + eu − eccs: Annex Part A point 1.
+   Comparator 94 and savings = (EF − E) / EF: Part A point 2. Both shown in the UI.
+2. **ei** = ei elastic + ei rigid − e ex-use (Part A points 1 and 10). Negative ei is
+   allowed; the field accepts it.
+3. **eu and captured carbon.** eu = total combustion emissions of the fuel in use
+   (point 13). Captured CO₂ from eligible sources is credited inside ei via e ex-use
+   (point 10), not by reducing eu. Energy used for capture counts as an input. (The
+   first draft had this the other way round; corrected.)
+4. **Eligible CO₂ sources** (point 10(a)–(e)): (a) ETS Annex I activities under
+   effective carbon pricing, incorporated before 2036 (2041 if not from combusting
+   fuels for electricity); (b) air; (c) compliant biofuels/bioliquids/biomass fuels
+   without CCU/CCS credit; (d) compliant RFNBO/RCF; (e) geological CO₂ previously
+   released naturally. Not eligible: CO₂ from fuel burned specifically to produce CO₂,
+   or already credited elsewhere. The 2036/2041 dates are subject to review (point 11).
+5. **70 % legal basis.** RFNBO: RED Art. 29a(1) (inserted by RED III; previously
+   Art. 25(2)). RCF: RED Art. 29a(2) and Art. 2 of the Regulation.
+6. **Electricity** (Part A points 5–6). Fully renewable under RED Art. 27(6) (formerly
+   27(3), as cited in the Regulation) = zero. Other grid electricity, per calendar
+   year, one of: (a) average intensity of the country or bidding zone (Part C);
+   (b) zero if full-load hours fall within hours when renewables/nuclear set the
+   price, otherwise 183 gCO₂eq/MJ; (c) marginal unit in the bidding zone if published
+   by the TSO. Detailed rules in Delegated Regulation (EU) 2023/1184.
+7. **Definitions.** ep = direct processing emissions, waste treatment, leakages
+   (point 12); etd = storage and distribution of finished fuel, input transport goes
+   in ei (point 16); eu = total combustion emissions in use (point 13); eccs = CO₂
+   permanently stored under Directive 2009/31/EC, storage operation emissions in ep
+   (point 17).
+8. **Same formula** for RFNBO and RCF: confirmed.
+9. **German terms** as in the German text of the Regulation: "flüssige oder gasförmige
+   erneuerbare Kraftstoffe nicht biogenen Ursprungs für den Verkehr";
+   "wiederverwertete kohlenstoffhaltige Kraftstoffe"; ei "Emissionen aus der
+   Versorgung mit Einsatzstoffen" (elastic: "mit elastischem Angebot", rigid: "mit
+   unelastischem Angebot", ex-use: "Emissionen aus der derzeitigen Nutzung oder
+   Bestimmung der Einsatzstoffe"); ep "Emissionen aus der Verarbeitung"; etd
+   "Emissionen aus Transport und Verteilung"; eu "Emissionen aus der Verbrennung des
+   Kraftstoffs bei der Endnutzung"; eccs "Emissionseinsparungen durch CO2-Abscheidung
+   und geologische CO2-Speicherung"; unit "g CO2-Äq./MJ Kraftstoff". Guarded by
+   `tests/efuel.test.ts`.
+10. **SAF wording.** ReFuelEU Aviation (Regulation (EU) 2023/2405): aviation biofuels
+    must meet RED Art. 29; savings calculated under RED Art. 31(1), i.e. the Annex V
+    method (Biofuel mode) with the Art. 29(10) thresholds. Synthetic aviation fuels
+    (e-SAF) must meet the 70 % threshold of RED Art. 29a(1) (E-fuel mode).
+11. **Illustration numbers** (1.5 MJ electricity per MJ fuel, 20 gCO₂eq/MJ) are
+    labelled "Illustrative example, not a legal value".
+12. **German preset names** match Annex V DE; "Umweltschutzbeauftragter (TÜV
+    Rheinland)" matches the owner's profile.
 
-1. **Formula and numbering.** E = ei + ep + etd + eu − eccs is in the Annex, Part A
-   point 1. The UI cites only "Annex".
-2. **Structure of ei.** I believe ei = ei elastic + ei rigid − e ex-use (emissions from
-   the inputs' existing use or fate). The ei hint says it is "net of the emissions
-   avoided from an input's existing use, so it can be negative", and the field accepts
-   negative values. Confirm the definition and whether a negative ei is possible.
-3. **Where the captured carbon is credited (most important).** The UI says, as
-   specified by the owner, that eu counts combustion CO₂ "where the carbon in the fuel
-   is not from an eligible source". My recollection is that the Annex books it
-   differently: eu counts the combustion emissions of the fuel, and the CO₂ taken up
-   from an eligible source is credited inside ei via e ex-use. The total E is the same
-   either way, but the wording of the eu and ei hints and explanations should match
-   the Annex.
-4. **"Eligible source" of CO₂.** Which sources count (for example CO₂ from activities
-   under the EU ETS until a cut-off date, direct air capture, biogenic CO₂, geological
-   CO₂ released naturally) and the cut-off dates. The UI only says "eligible source"
-   and gives no list.
-5. **Comparator.** 94 gCO₂eq/MJ is the fossil fuel comparator for RFNBO and recycled
-   carbon fuels, and savings = (94 − E) / 94.
-6. **70 % minimum and its legal basis.** I believe: RFNBO at least 70 % under RED
-   Art. 29a(1) as inserted by RED III (formerly Art. 25(2) RED II); recycled carbon
-   fuels at least 70 % under RED Art. 29a(2) and/or Art. 2 of Delegated Regulation
-   2023/1185. The UI states 70 % next to the citation of the Delegated Regulation
-   without naming an article.
-7. **Electricity.** "Electricity that counts as fully renewable under the RED rules is
-   taken to have zero emissions; other electricity is counted with its emission
-   intensity." Confirm the zero-emission rule and its reference (RED Art. 27 and
-   Delegated Regulation (EU) 2023/1184), and how other electricity is counted
-   (country values in the Annex or other permitted methods).
-8. **Definitions of ep, etd, eu, eccs** as written in `src/i18n.ts` (`efuelTerms`):
-   ep "emissions from the production process itself that are not already covered by
-   the inputs"; etd "transporting, storing and distributing the finished fuel"; eu
-   "emissions from burning the fuel in its end use"; eccs "capturing CO₂ from the
-   production process and storing it permanently underground".
-9. **Same method for both fuel types.** That the Annex formula applies to RFNBO and to
-   recycled carbon fuels alike.
-10. **Amendments.** Whether Delegated Regulation 2023/1185 has been amended since
-    publication (use the consolidated text if so), and that the link
-    https://eur-lex.europa.eu/eli/reg_del/2023/1185/oj opens it.
-11. **German terms.** "erneuerbare Kraftstoffe nicht biogenen Ursprungs", "wieder-
-    verwertete kohlenstoffhaltige Kraftstoffe", and the German term names
-    (Bereitstellung der Inputs, Verarbeitung, Transport und Vertrieb, Verbrennung bei
-    der Endnutzung, CO₂-Abscheidung und geologische Speicherung) against the German
-    text of the Regulation.
-
-SAF note:
-
-12. "Bio-based SAF, for example HEFA, uses the biofuel method" (Annex V) and "synthetic
-    aviation fuel made from renewable electricity uses the e-fuel method". Confirm, and
-    confirm that the Art. 29(10)(a)–(c) thresholds apply to biofuels used in aviation.
-
-Not legal values, for information:
-
-13. The explainer's "1.5 MJ of electricity per MJ of fuel" and "20 gCO₂eq/MJ" are an
-    illustration with round numbers, labelled as such, not values from the Regulation.
-
-Still open from PR 2:
-
-14. German preset names and the certificate title "Umweltschutzbeauftragter
-    (TÜV Rheinland)".
+Note for later sessions: the German unit "g CO₂-Äq./MJ" is used in the e-fuel mode
+only, as in the German text of the Regulation. The biofuel and blend modes keep
+"gCO₂eq/MJ" in German. Unifying them is an open design choice for the owner.
 
 ## Next
 
 - Decided by the owner: the career profile file is private and must NOT be added to
   this public repo. The job-fit scorer is used privately.
-- [ ] Owner: read the German texts once (see open questions).
 
 ## Acceptance criteria status (checked on the live URL)
 
@@ -153,10 +142,6 @@ scenarios and screenshots, and `npx lighthouse http://localhost:4173/` with
 `CHROME_PATH` pointing at Chromium. These scripts are not in the repo.
 
 ## Open questions
-
-- German wording should be read once by the owner, especially the certificate title
-  "Umweltschutzbeauftragter (TÜV Rheinland)" in the About text and the German
-  preset names (written to follow the German text of Annex V, not checked against it).
 
 - Resolved: the repository was completely empty when work started. With the owner's
   approval, `main` was created from the README-only "Initial commit" of this branch.
