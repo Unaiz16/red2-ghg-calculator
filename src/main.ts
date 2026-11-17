@@ -1,16 +1,23 @@
 import {
   CREDIT_TERMS,
+  EFUEL_MIN_SAVINGS_PERCENT,
+  EFUEL_TERMS,
   EMISSION_TERMS,
   FOSSIL_COMPARATOR,
   MAX_BLEND_COMPONENTS,
+  ZERO_EFUEL_INPUTS,
   ZERO_INPUTS,
   blend,
+  efuelEmissions,
   isIsoDate,
+  meetsEfuelMinimum,
   meetsThreshold,
   round,
   savingsPercent,
   thresholdForStartDate,
   totalEmissions,
+  type EfuelInputs,
+  type EfuelKey,
   type PathwayInputs,
   type TermKey,
 } from './calc';
@@ -303,14 +310,24 @@ function shareUrl(): string {
   return `${location.origin}${location.pathname}?${buildQuery()}`;
 }
 
-function currentMode(): 'single' | 'blend' {
-  return document.querySelector<HTMLInputElement>('input[name="mode"]:checked')?.value === 'blend' ? 'blend' : 'single';
+type Mode = 'single' | 'blend' | 'efuel';
+
+function currentMode(): Mode {
+  const value = document.querySelector<HTMLInputElement>('input[name="mode"]:checked')?.value;
+  return value === 'blend' || value === 'efuel' ? value : 'single';
 }
 
 function buildQuery(): string {
   const q = new URLSearchParams();
   q.set('lang', lang);
   q.set('mode', currentMode());
+  if (currentMode() === 'efuel') {
+    for (const key of EFUEL_TERMS) {
+      const v = efuelInput(key).value.trim();
+      if (v !== '' && Number(v) !== 0) q.set(`f_${key}`, v);
+    }
+    return q.toString();
+  }
   if (currentMode() === 'blend') {
     for (const row of blendRows) {
       q.append('c', [row.name.replace(/~/g, ' '), row.fossil ? 'f' : 'b', row.energy, row.fossil ? '' : row.e].join('~'));
@@ -363,13 +380,18 @@ function applyQuery(): void {
   }
   if (rows.length) blendRows = rows;
 
-  if (q.get('mode') === 'blend') {
-    const radio = $<HTMLInputElement>('input[name="mode"][value="blend"]');
-    radio.checked = true;
+  for (const key of EFUEL_TERMS) {
+    const raw = q.get(`f_${key}`);
+    if (raw !== null && raw.trim() !== '' && Number.isFinite(Number(raw))) efuelInput(key).value = String(Number(raw));
+  }
+
+  const mode = q.get('mode');
+  if (mode === 'blend' || mode === 'efuel') {
+    $<HTMLInputElement>(`input[name="mode"][value="${mode}"]`).checked = true;
   }
 }
 
-const ACTIONS = (mode: 'single' | 'blend') => `<div class="row-actions">
+const ACTIONS = (mode: Mode) => `<div class="row-actions">
     <button type="button" class="btn primary" data-copy="${mode}">${T.copyResult}</button>
     <button type="button" class="btn" data-copy-link>${T.copyLink}</button>
     <button type="button" class="btn" data-print>${T.print}</button>
@@ -732,6 +754,7 @@ function renderBlend(): void {
         <td class="num">${fmtInput(c.energyMJ)}</td>
         <td class="num">${fmt(share)}</td>
         <td class="num">${fmt(c.e, 2)}</td>
+        <td class="num">${fmt(savingsPercent(c.e))}</td>
       </tr>`;
     })
     .join('');
@@ -757,9 +780,9 @@ function renderBlend(): void {
     <div class="table-wrap">
       <table class="breakdown">
         <caption>${T.components}</caption>
-        <thead><tr><th scope="col">${T.componentCol}</th><th scope="col" class="num">${T.energyCol}<br />MJ</th><th scope="col" class="num">${T.shareCol}<br />%</th><th scope="col" class="num">E<br />${UNIT}</th></tr></thead>
+        <thead><tr><th scope="col">${T.componentCol}</th><th scope="col" class="num">${T.energyCol}<br />MJ</th><th scope="col" class="num">${T.shareCol}<br />%</th><th scope="col" class="num">E<br />${UNIT}</th><th scope="col" class="num">${T.savingCol}<br />%</th></tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr><th scope="row">${T.blend}</th><td class="num">${fmtInput(result.totalEnergyMJ)}</td><td class="num">${fmt(100)}</td><td class="num">${fmt(result.intensity, 2)}</td></tr></tfoot>
+        <tfoot><tr><th scope="row">${T.blend}</th><td class="num">${fmtInput(result.totalEnergyMJ)}</td><td class="num">${fmt(100)}</td><td class="num">${fmt(result.intensity, 2)}</td><td class="num">${fmt(result.savingsPercent)}</td></tr></tfoot>
       </table>
     </div>
     ${renderChart({
@@ -836,14 +859,160 @@ function initBlend(): void {
   $('#blend-form').addEventListener('submit', (e) => e.preventDefault());
 }
 
+/* ---------- E-fuel: RFNBO and recycled carbon fuels ---------- */
+
+const EFUEL_FIELDS: readonly { key: EfuelKey; sub: string; allowNegative?: boolean }[] = [
+  { key: 'ei', sub: 'i', allowNegative: true },
+  { key: 'ep', sub: 'p' },
+  { key: 'etd', sub: 'td' },
+  { key: 'eu', sub: 'u' },
+  { key: 'eccs', sub: 'ccs' },
+];
+
+const efuelForm = $<HTMLFormElement>('#efuel-form');
+const efuelResults = $('#efuel-results');
+let lastEfuelCopy = '';
+
+function efuelInput(key: EfuelKey): HTMLInputElement {
+  return $<HTMLInputElement>(`#fin-${key}`);
+}
+
+/** (Re)builds the language-dependent fields, keeping the values. */
+function buildEfuelForm(): void {
+  const values = new Map<EfuelKey, string>();
+  for (const f of EFUEL_FIELDS) {
+    const input = document.querySelector<HTMLInputElement>(`#fin-${f.key}`);
+    if (input) values.set(f.key, input.value);
+  }
+  $('#efuel-fields').innerHTML = EFUEL_FIELDS.map((f) => {
+    const text = T.efuelTerms[f.key];
+    const describedBy = [text.hint ? `fhint-${f.key}` : '', `ferr-${f.key}`].filter(Boolean).join(' ');
+    return `<div class="term-field">
+      <div class="label-row"><label for="fin-${f.key}"><span class="sym">e<sub>${f.sub}</sub></span> ${esc(text.label)}</label></div>
+      <input type="number" id="fin-${f.key}" name="${f.key}" inputmode="decimal" step="0.1" ${f.allowNegative ? '' : 'min="0"'} value="0" aria-describedby="${describedBy}" />
+      ${text.hint ? `<p class="hint" id="fhint-${f.key}">${esc(text.hint)}</p>` : ''}
+      <p class="error" id="ferr-${f.key}" hidden></p>
+    </div>`;
+  }).join('');
+  for (const [key, value] of values) efuelInput(key).value = value;
+}
+
+function readEfuel(): { inputs: EfuelInputs; valid: boolean } {
+  const inputs: EfuelInputs = { ...ZERO_EFUEL_INPUTS };
+  let valid = true;
+  for (const f of EFUEL_FIELDS) {
+    const input = efuelInput(f.key);
+    const err = $(`#ferr-${f.key}`);
+    const raw = input.value.trim();
+    const value = raw === '' ? (input.validity.badInput ? NaN : 0) : Number(raw);
+    let message = '';
+    if (!Number.isFinite(value)) message = T.errNumber;
+    else if (value < 0 && !f.allowNegative) message = T.errNonNegative;
+    err.textContent = message;
+    err.hidden = message === '';
+    input.setAttribute('aria-invalid', message ? 'true' : 'false');
+    if (message) valid = false;
+    else inputs[f.key] = value;
+  }
+  return { inputs, valid };
+}
+
+function renderEfuel(): void {
+  scheduleUrlUpdate();
+  const { inputs, valid } = readEfuel();
+  if (!valid) {
+    lastEfuelCopy = '';
+    efuelResults.innerHTML = `<h3>${T.efuelResult}</h3><p class="flag warn">${T.fixInputs}</p>`;
+    return;
+  }
+
+  const e = efuelEmissions(inputs);
+  const saving = savingsPercent(e);
+  const pass = meetsEfuelMinimum(e);
+  const gap = round(saving, 1) - EFUEL_MIN_SAVINGS_PERCENT;
+  const gapText = round(gap, 1) === 0 ? T.gapExact : T.gap(fmt(Math.abs(gap)), pass);
+
+  const contribution = (key: EfuelKey) => (key === 'eccs' ? -inputs[key] : inputs[key]) + 0;
+  const rows = EFUEL_FIELDS.map(
+    (f) => `<tr>
+      <th scope="row"><span class="sym">e<sub>${f.sub}</sub></span> <span class="term-name">${esc(T.efuelTerms[f.key].label)}</span></th>
+      <td class="num">${fmt(contribution(f.key), 2)}</td>
+    </tr>`,
+  ).join('');
+  const segments: Segment[] = EFUEL_FIELDS.map((f) => ({
+    labelHtml: `e<sub>${f.sub}</sub>`,
+    name: T.tipTerm(`e${f.sub}`, T.efuelTerms[f.key].label),
+    value: contribution(f.key),
+  }));
+
+  efuelResults.innerHTML = `
+    <h3>${T.efuelResult}</h3>
+    <div class="headline">
+      <div class="big"><span class="big-label">${T.ghgSavings}</span><span class="big-num">${animNum('f-saving', saving, 1, true)}</span></div>
+      <div class="big"><span class="big-label">${T.totalEmissions}</span><span class="big-num">${animNum('f-e', e, 2)} <span class="unit">${UNIT}</span></span></div>
+    </div>
+    <p class="calc-line">(94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}</p>
+    ${savingsNote(e)}
+    <div class="verdict ${pass ? 'pass' : 'fail'}">
+      <span class="badge">${pass ? T.pass : T.fail}</span>
+      <p><strong>${gapText}.</strong> ${T.efuelVerdict(pass)}</p>
+    </div>
+    <div class="table-wrap">
+      <table class="breakdown">
+        <caption>${T.breakdown}</caption>
+        <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${UNIT}</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr><th scope="row">${T.eTotal}</th><td class="num">${fmt(e, 2)}</td></tr>
+          <tr><th scope="row">${T.comparatorRow.split(',')[0]}</th><td class="num">${fmt(FOSSIL_COMPARATOR, 2)}</td></tr>
+          <tr><th scope="row">${T.ghgSavings}</th><td class="num">${pct(saving)}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="hint">${T.efuelBreakdownNote}</p>
+    ${renderChart({
+      caption: T.chartTermsCaption,
+      addedLabel: T.chartEmissions,
+      totalLabel: T.eTotal,
+      segments,
+      total: e,
+      thresholdPercent: EFUEL_MIN_SAVINGS_PERCENT,
+    })}
+    ${ACTIONS('efuel')}
+  `;
+  runNumberTransitions(efuelResults);
+
+  lastEfuelCopy = [
+    `${T.copyTitleEfuel}, ${T.efuelLabel}`,
+    `E = ${fmt(e, 2)} ${UNIT} (ei ${fmtInput(inputs.ei)} + ep ${fmtInput(inputs.ep)} + etd ${fmtInput(inputs.etd)} + eu ${fmtInput(inputs.eu)} − eccs ${fmtInput(inputs.eccs)})`,
+    `${T.ghgSavings} = (94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}`,
+    T.efuelThresholdCopy(pass ? T.passCopy : T.failCopy, gapText),
+    `${T.link}: ${shareUrl()}`,
+    T.disclaimer,
+  ].join('\n');
+}
+
+function initEfuel(): void {
+  buildEfuelForm();
+  efuelForm.addEventListener('input', renderEfuel);
+  efuelForm.addEventListener('submit', (e) => e.preventDefault());
+  $('#reset-efuel').addEventListener('click', () => {
+    for (const f of EFUEL_FIELDS) efuelInput(f.key).value = '0';
+    renderEfuel();
+    announce(T.inputsReset);
+  });
+}
+
 /* ---------- Shared ---------- */
 
 function initModeSwitch(): void {
   const single = $('#panel-single');
   const blendPanel = $('#panel-blend');
+  const efuelPanel = $('#panel-efuel');
   const sync = () => {
     single.hidden = currentMode() !== 'single';
     blendPanel.hidden = currentMode() !== 'blend';
+    efuelPanel.hidden = currentMode() !== 'efuel';
   };
   for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="mode"]')) {
     radio.addEventListener('change', () => {
@@ -869,7 +1038,8 @@ function initCopy(): void {
     }
     const btn = el.closest<HTMLButtonElement>('[data-copy]');
     if (!btn) return;
-    const text = btn.dataset.copy === 'blend' ? lastBlendCopy : lastSingleCopy;
+    const text =
+      btn.dataset.copy === 'blend' ? lastBlendCopy : btn.dataset.copy === 'efuel' ? lastEfuelCopy : lastSingleCopy;
     if (!text) return;
     const ok = await copyText(text);
     announce(ok ? T.resultCopied : T.resultFailed);
@@ -883,6 +1053,10 @@ function initCopy(): void {
 }
 
 function initExplainer(): void {
+  $('#efuel-term-list').innerHTML = EFUEL_FIELDS.map(
+    (f) =>
+      `<div class="term"><dt><span class="sym">e<sub>${f.sub}</sub></span> ${esc(T.efuelTerms[f.key].label)}</dt><dd>${esc(T.efuelTerms[f.key].explain)}</dd></div>`,
+  ).join('');
   $('#term-list').innerHTML = TERMS.map(
     (term) =>
       `<div class="term"><dt><span class="sym">${sym(term)}</span> ${esc(T.terms[term.key].label)}</dt><dd>${esc(T.terms[term.key].explain)}</dd></div>`,
@@ -922,9 +1096,11 @@ function setLang(next: Lang): void {
   document.dispatchEvent(new Event('languagechange-app'));
   applyStaticText();
   buildSingleForm();
+  buildEfuelForm();
   renderBlendRows();
   renderSingle();
   renderBlend();
+  renderEfuel();
   initExplainer();
 }
 
@@ -938,11 +1114,13 @@ applyStaticText();
 initLangSwitch();
 initSingle();
 initBlend();
+initEfuel();
 applyQuery();
 initModeSwitch();
 renderBlendRows();
 renderSingle();
 renderBlend();
+renderEfuel();
 initCopy();
 initChartTooltips();
 initExplainer();

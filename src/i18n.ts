@@ -1,4 +1,4 @@
-import type { TermKey } from './calc';
+import type { EfuelKey, TermKey } from './calc';
 
 export type Lang = 'en' | 'de';
 
@@ -97,6 +97,15 @@ export interface Messages {
   copyBio: string;
   defaultBio: string;
   defaultFossil: string;
+  savingCol: string;
+  // e-fuel
+  efuelTerms: Record<EfuelKey, TermText>;
+  efuelResult: string;
+  efuelVerdict: (pass: boolean) => string;
+  efuelThresholdCopy: (outcome: string, gap: string) => string;
+  efuelBreakdownNote: string;
+  copyTitleEfuel: string;
+  efuelLabel: string;
   // status
   inputsReset: string;
   blendReset: string;
@@ -110,9 +119,9 @@ export interface Messages {
 export const EN: Messages = {
   decimal: '.',
   percent: (n) => `${n}%`,
-  docTitle: 'RED II GHG Savings Calculator (as amended by RED III)',
+  docTitle: 'GHG Savings Calculator for Renewable Fuels (EU RED)',
   metaDescription:
-    'Free educational calculator for the greenhouse gas savings of a biofuel under RED II as amended by RED III (Directive (EU) 2018/2001, amended by Directive (EU) 2023/2413).',
+    'GHG savings calculator for renewable transport fuels – biofuels, SAF and e-fuels (EU RED). Free educational tool using the method of RED II as amended by RED III.',
   disclaimer:
     "Educational tool. Not for certification, audits or official GHG reporting. Use certified values and your certification scheme's rules.",
   label: 'RED II as amended by RED III (Directive (EU) 2018/2001, amended by Directive (EU) 2023/2413)',
@@ -251,6 +260,43 @@ export const EN: Messages = {
   copyBio: 'Bio content by energy',
   defaultBio: 'Biofuel',
   defaultFossil: 'Fossil fuel',
+  savingCol: 'Saving',
+  efuelTerms: {
+    ei: {
+      label: 'Supply of inputs',
+      hint: 'Includes electricity. Net of the emissions avoided from an input\'s existing use, so it can be negative.',
+      explain:
+        'Emissions from supplying everything that goes into the fuel, above all the electricity for electrolysis, plus any other energy and material inputs. For most e-fuels this term decides the result. It is counted net of emissions avoided because an input is no longer used or released the way it was before.',
+    },
+    ep: {
+      label: 'Processing',
+      explain:
+        'Emissions from the production process itself that are not already covered by the inputs, for example direct emissions at the plant.',
+    },
+    etd: {
+      label: 'Transport and distribution',
+      explain:
+        'Emissions from transporting, storing and distributing the finished fuel. Compression or liquefaction for transport can make this term noticeable for hydrogen.',
+    },
+    eu: {
+      label: 'Combustion in end use',
+      hint: 'Counts where the carbon in the fuel is not from an eligible source.',
+      explain:
+        'Emissions from burning the fuel in its end use. Hydrogen contains no carbon. For carbon-containing e-fuels, the CO₂ from combustion counts here where the carbon is not from an eligible source.',
+    },
+    eccs: {
+      label: 'CO₂ capture and geological storage',
+      explain:
+        'Emission savings from capturing CO₂ from the production process and storing it permanently underground. It is the only term that is subtracted.',
+    },
+  },
+  efuelResult: 'E-fuel result',
+  efuelVerdict: (pass) =>
+    `${pass ? 'Meets' : 'Does not meet'} the 70% minimum for renewable fuels of non-biological origin and recycled carbon fuels (E at or below 28.20 ${UNIT}).`,
+  efuelThresholdCopy: (outcome, gap) => `Minimum saving for RFNBO and recycled carbon fuels: 70%: ${outcome} (${gap})`,
+  efuelBreakdownNote: 'No default values exist for e-fuels. All values are your own inputs.',
+  copyTitleEfuel: 'E-fuel GHG savings (RFNBO / recycled carbon fuel)',
+  efuelLabel: 'method of Commission Delegated Regulation (EU) 2023/1185, supplementing Directive (EU) 2018/2001',
   inputsReset: 'Inputs reset.',
   blendReset: 'Blend reset.',
   componentRemoved: (n) => `Component ${n} removed.`,
@@ -263,9 +309,9 @@ export const EN: Messages = {
 export const DE: Messages = {
   decimal: ',',
   percent: (n) => `${n} %`,
-  docTitle: 'RED-II-Rechner für THG-Einsparungen (in der Fassung der RED III)',
+  docTitle: 'THG-Einsparungsrechner für erneuerbare Kraftstoffe (EU RED)',
   metaDescription:
-    'Kostenloser Lernrechner für die Treibhausgaseinsparung eines Biokraftstoffs nach RED II in der durch RED III geänderten Fassung (Richtlinie (EU) 2018/2001, geändert durch Richtlinie (EU) 2023/2413).',
+    'THG-Einsparungsrechner für erneuerbare Kraftstoffe im Verkehr – Biokraftstoffe, SAF und E-Fuels (EU RED). Kostenloses Lernwerkzeug nach der Methode der RED II in der durch RED III geänderten Fassung.',
   disclaimer:
     'Lernwerkzeug. Nicht für Zertifizierung, Audits oder offizielle THG-Berichterstattung. Verwenden Sie zertifizierte Werte und die Regeln Ihres Zertifizierungssystems.',
   label:
@@ -406,6 +452,44 @@ export const DE: Messages = {
   copyBio: 'Bioanteil nach Energie',
   defaultBio: 'Biokraftstoff',
   defaultFossil: 'Fossiler Kraftstoff',
+  savingCol: 'Einsparung',
+  efuelTerms: {
+    ei: {
+      label: 'Bereitstellung der Inputs',
+      hint: 'Einschließlich Strom. Abzüglich der vermiedenen Emissionen aus der bisherigen Nutzung eines Inputs, kann daher negativ sein.',
+      explain:
+        'Emissionen aus der Bereitstellung aller Einsatzstoffe des Kraftstoffs, vor allem des Stroms für die Elektrolyse, sowie weiterer Energie- und Materialinputs. Bei den meisten E-Fuels entscheidet dieser Term über das Ergebnis. Er wird abzüglich der Emissionen angesetzt, die vermieden werden, weil ein Input nicht mehr wie bisher genutzt oder freigesetzt wird.',
+    },
+    ep: {
+      label: 'Verarbeitung',
+      explain:
+        'Emissionen aus dem Herstellungsprozess selbst, die nicht schon durch die Inputs erfasst sind, zum Beispiel direkte Emissionen der Anlage.',
+    },
+    etd: {
+      label: 'Transport und Vertrieb',
+      explain:
+        'Emissionen aus Transport, Lagerung und Vertrieb des fertigen Kraftstoffs. Bei Wasserstoff kann die Verdichtung oder Verflüssigung für den Transport diesen Term spürbar erhöhen.',
+    },
+    eu: {
+      label: 'Verbrennung bei der Endnutzung',
+      hint: 'Zählt, soweit der Kohlenstoff im Kraftstoff nicht aus einer anrechenbaren Quelle stammt.',
+      explain:
+        'Emissionen aus der Verbrennung des Kraftstoffs bei der Endnutzung. Wasserstoff enthält keinen Kohlenstoff. Bei kohlenstoffhaltigen E-Fuels zählt das CO₂ aus der Verbrennung hier, soweit der Kohlenstoff nicht aus einer anrechenbaren Quelle stammt.',
+    },
+    eccs: {
+      label: 'CO₂-Abscheidung und geologische Speicherung',
+      explain:
+        'Emissionseinsparungen durch die Abscheidung von CO₂ aus dem Herstellungsprozess und seine dauerhafte Speicherung im Untergrund. Dies ist der einzige Term, der abgezogen wird.',
+    },
+  },
+  efuelResult: 'Ergebnis E-Fuel',
+  efuelVerdict: (pass) =>
+    `${pass ? 'Erfüllt' : 'Erfüllt nicht'} die Mindesteinsparung von 70\u00a0% für erneuerbare Kraftstoffe nicht biogenen Ursprungs und wiederverwertete kohlenstoffhaltige Kraftstoffe (E höchstens 28,20 ${UNIT}).`,
+  efuelThresholdCopy: (outcome, gap) =>
+    `Mindesteinsparung für RFNBO und wiederverwertete kohlenstoffhaltige Kraftstoffe: 70 %: ${outcome} (${gap})`,
+  efuelBreakdownNote: 'Für E-Fuels gibt es keine Standardwerte. Alle Werte sind Ihre eigenen Eingaben.',
+  copyTitleEfuel: 'THG-Einsparung eines E-Fuels (RFNBO / wiederverwerteter kohlenstoffhaltiger Kraftstoff)',
+  efuelLabel: 'Methode der Delegierten Verordnung (EU) 2023/1185 zur Ergänzung der Richtlinie (EU) 2018/2001',
   inputsReset: 'Eingaben zurückgesetzt.',
   blendReset: 'Mischung zurückgesetzt.',
   componentRemoved: (n) => `Komponente ${n} entfernt.`,
@@ -424,15 +508,16 @@ const EURLEX_DE = 'https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELE
 export const STATIC_DE: Record<string, string> = {
   skip: 'Zum Rechner springen',
   eyebrow: 'RED II in der Fassung der RED III',
-  h1: 'THG-Einsparungsrechner für Biokraftstoffe',
+  h1: 'THG-Einsparungsrechner für erneuerbare Kraftstoffe',
   subtitle:
-    'Berechnet die Treibhausgaseinsparung eines Biokraftstoffs nach RED II in der durch RED III geänderten Fassung (Richtlinie (EU) 2018/2001, geändert durch Richtlinie (EU) 2023/2413) und erklärt das Ergebnis in einfacher Sprache.',
+    'THG-Einsparungsrechner für erneuerbare Kraftstoffe im Verkehr – Biokraftstoffe, SAF und E-Fuels (EU RED). Methode der RED II in der durch RED III geänderten Fassung (Richtlinie (EU) 2018/2001, geändert durch Richtlinie (EU) 2023/2413), mit einer Erklärung des Ergebnisses in einfacher Sprache.',
   disclaimer:
     '<strong>Lernwerkzeug.</strong> Nicht für Zertifizierung, Audits oder offizielle THG-Berichterstattung. Verwenden Sie zertifizierte Werte und die Regeln Ihres Zertifizierungssystems.',
   'calc-heading': 'Rechner',
   'mode-legend': 'Berechnungsmodus',
-  'mode-single': 'Einzelner Herstellungsweg',
-  'mode-blend': 'Mischung',
+  'mode-single': 'Biokraftstoff',
+  'mode-blend': 'Mischung / Vergleich',
+  'mode-efuel': 'E-Fuel',
   inputs: 'Eingaben',
   'preset-label': 'Voreinstellung (Standardwerte nach Anhang V)',
   'preset-source': `Quelle: Anhang V Teile A und D, Richtlinie (EU) 2018/2001, konsolidierte Fassung <a href="${EURLEX_DE}" target="_blank" rel="noopener">02018L2001-20240716</a>. Disaggregierte Standardwerte in gCO<sub>2</sub>eq/MJ.`,
@@ -442,10 +527,22 @@ export const STATIC_DE: Record<string, string> = {
   'date-hint':
     'Bestimmt die Mindesteinsparung nach Art. 29 Abs. 10 Buchst. a–c: 50 % (in Betrieb am oder vor dem 05.10.2015), 60 % (06.10.2015–31.12.2020), 65 % (ab 01.01.2021).',
   'reset-single': 'Eingaben zurücksetzen',
-  'blend-heading': 'Komponenten der Mischung',
+  'blend-heading': 'Mischung / Lieferantenangebote vergleichen',
   'blend-hint':
-    'Bis zu 5 Komponenten. Geben Sie für jede die Energiemenge (MJ) und die Emissionsintensität E (gCO<sub>2</sub>eq/MJ) ein. Fossile Komponenten zählen mit 94.',
+    'Bis zu 5 Komponenten. Geben Sie für jede die Energiemenge (MJ) und die Emissionsintensität E (gCO<sub>2</sub>eq/MJ) ein. Fossile Komponenten zählen mit 94. Um Lieferantenangebote zu vergleichen, geben Sie jedes Angebot als Komponente ein: Die Tabelle zeigt die Einsparung jedes Angebots und der Mischung.',
   'reset-blend': 'Mischung zurücksetzen',
+  'efuel-heading': 'Eingaben E-Fuel (RFNBO / wiederverwerteter kohlenstoffhaltiger Kraftstoff)',
+  'efuel-hint':
+    'Methode der Delegierten Verordnung (EU) 2023/1185 der Kommission. Für E-Fuels gibt es keine Standardwerte: Geben Sie eigene Werte in gCO<sub>2</sub>eq/MJ Kraftstoff ein.',
+  'efuel-legend': 'Terme <span class="legend-note">gCO<sub>2</sub>eq/MJ</span>',
+  'efuel-source':
+    'Quelle: Delegierte Verordnung (EU) 2023/1185 der Kommission, Anhang, <a href="https://eur-lex.europa.eu/eli/reg_del/2023/1185/oj" target="_blank" rel="noopener">EUR-Lex</a>. Fossiler Vergleichswert 94 gCO<sub>2</sub>eq/MJ, Mindesteinsparung 70\u00a0%.',
+  'efuel-card': `<h3>E-Fuels: Warum Netzstrom die Mindesteinsparung von 70\u00a0% verfehlen kann</h3>
+          <p>E-Fuels sind hier erneuerbare Kraftstoffe nicht biogenen Ursprungs (RFNBO), etwa Wasserstoff aus Elektrolyse und daraus hergestellte Kraftstoffe, sowie wiederverwertete kohlenstoffhaltige Kraftstoffe. Ihre Emissionen werden nach der Methode der Delegierten Verordnung (EU) 2023/1185 der Kommission berechnet. Sie müssen gegenüber demselben fossilen Vergleichswert von 94 gCO<sub>2</sub>eq/MJ mindestens 70\u00a0% einsparen. Für die gesamte Kette bleiben damit höchstens 28,2 gCO<sub>2</sub>eq/MJ.</p>
+          <p>Fast die gesamte Energie eines E-Fuels stammt aus Strom, und wegen der Umwandlungsverluste wird je Megajoule Kraftstoff mehr als ein Megajoule Strom gebraucht. Die Emissionen des Stroms werden also vervielfacht, nicht verdünnt. Ein Beispiel mit runden Zahlen: Braucht ein Prozess 1,5 MJ Strom je MJ Kraftstoff, ergibt Strom mit 20 gCO<sub>2</sub>eq/MJ bereits 30 gCO<sub>2</sub>eq/MJ Kraftstoff. Das liegt über der Grenze, noch bevor Verarbeitung und Transport gezählt sind. Netzstrom mit einem spürbaren Anteil fossiler Erzeugung liegt weit darüber.</p>
+          <p>Deshalb entscheidet die Herkunft des Stroms über das Ergebnis. Strom, der nach den RED-Regeln als vollständig erneuerbar gilt, wird mit null Emissionen angesetzt; anderer Strom zählt mit seiner Emissionsintensität.</p>
+          <p class="formula" aria-label="Formel">E = e<sub>i</sub> + e<sub>p</sub> + e<sub>td</sub> + e<sub>u</sub> − e<sub>ccs</sub><br />Einsparung = (94 − E) / 94, mindestens 70\u00a0%</p>
+          <dl id="efuel-term-list" class="term-list"></dl>`,
   'explainer-heading': 'So lesen Sie das Ergebnis',
   'bio-card': `<h3>Bioanteil ist nicht gleich THG-Einsparung</h3>
           <p>Der Bioanteil sagt, woher der Kohlenstoff im Kraftstoff stammt. Die THG-Einsparung sagt, wie viel weniger Treibhausgase die gesamte Lieferkette je Megajoule verursacht als der fossile Vergleichswert von 94 gCO<sub>2</sub>eq/MJ. Das sind zwei verschiedene Fragen.</p>
@@ -457,6 +554,7 @@ export const STATIC_DE: Record<string, string> = {
   'good-card': `<h3>Gut zu wissen</h3>
           <ul>
             <li><strong>Standardwerte und Landnutzungsänderungen.</strong> Die Standardwerte nach Anhang V dürfen nur verwendet werden, wenn keine Nettoemissionen aus Landnutzungsänderungen entstehen, also wenn e<sub>l</sub> null oder kleiner ist.</li>
+            <li><strong>Nachhaltige Flugkraftstoffe (SAF).</strong> Für SAF gibt es hier keine eigene Berechnung. Biobasierte SAF, zum Beispiel HEFA, werden nach der Biokraftstoff-Methode berechnet. Synthetische Flugkraftstoffe aus erneuerbarem Strom werden nach der E-Fuel-Methode berechnet.</li>
             <li><strong>ETBE und TAEE.</strong> Für den erneuerbaren Anteil von ETBE und TAEE gilt der Wert des verwendeten Herstellungswegs für Ethanol.</li>
             <li><strong>Schwellenwerte von 70 % und 80 %.</strong> Die Schwellenwerte in Art. 29 Abs. 10 Buchst. d–h gelten für Strom, Wärme und Kälte aus Biomasse-Brennstoffen, nicht für Biokraftstoffe im Verkehr. Dieses Werkzeug prüft nur Art. 29 Abs. 10 Buchst. a–c; diese hat RED III nicht geändert.</li>
             <li><strong>Mischungen.</strong> Die Mindesteinsparung gilt für den Biokraftstoff selbst. Der Modus „Mischung“ zeigt den Durchschnitt einer Mischung und veranschaulicht den Unterschied zwischen Bioanteil und Einsparung.</li>

@@ -46,12 +46,84 @@ Handover file so another session can continue. Update after every step.
       expected results: strong fit, partial fit, not-a-fit). Written before the profile
       file existed; expected results rely only on the About facts.
 
+- [x] PR 3 work: e-fuel mode (RFNBO / recycled carbon fuel) per Delegated Regulation
+      (EU) 2023/1185: E = ei + ep + etd + eu − eccs, comparator 94, minimum 70 %
+      (E ≤ 28.2). No default values. EN + DE, explainer on grid electricity, SAF note,
+      new tagline, blend heading "Blend / compare supplier offers" with a saving column
+      per component. `src/calc.ts` (EFUEL_*), `tests/efuel.test.ts`.
+- [x] Removed the instruction to add the career profile to this public repo.
+
+## To verify (owner checks on EUR-Lex before PR 3 is marked ready)
+
+Written from memory of the legal texts, not checked against EUR-Lex in this session.
+
+E-fuel mode, Commission Delegated Regulation (EU) 2023/1185:
+
+1. **Formula and numbering.** E = ei + ep + etd + eu − eccs is in the Annex, Part A
+   point 1. The UI cites only "Annex".
+2. **Structure of ei.** I believe ei = ei elastic + ei rigid − e ex-use (emissions from
+   the inputs' existing use or fate). The ei hint says it is "net of the emissions
+   avoided from an input's existing use, so it can be negative", and the field accepts
+   negative values. Confirm the definition and whether a negative ei is possible.
+3. **Where the captured carbon is credited (most important).** The UI says, as
+   specified by the owner, that eu counts combustion CO₂ "where the carbon in the fuel
+   is not from an eligible source". My recollection is that the Annex books it
+   differently: eu counts the combustion emissions of the fuel, and the CO₂ taken up
+   from an eligible source is credited inside ei via e ex-use. The total E is the same
+   either way, but the wording of the eu and ei hints and explanations should match
+   the Annex.
+4. **"Eligible source" of CO₂.** Which sources count (for example CO₂ from activities
+   under the EU ETS until a cut-off date, direct air capture, biogenic CO₂, geological
+   CO₂ released naturally) and the cut-off dates. The UI only says "eligible source"
+   and gives no list.
+5. **Comparator.** 94 gCO₂eq/MJ is the fossil fuel comparator for RFNBO and recycled
+   carbon fuels, and savings = (94 − E) / 94.
+6. **70 % minimum and its legal basis.** I believe: RFNBO at least 70 % under RED
+   Art. 29a(1) as inserted by RED III (formerly Art. 25(2) RED II); recycled carbon
+   fuels at least 70 % under RED Art. 29a(2) and/or Art. 2 of Delegated Regulation
+   2023/1185. The UI states 70 % next to the citation of the Delegated Regulation
+   without naming an article.
+7. **Electricity.** "Electricity that counts as fully renewable under the RED rules is
+   taken to have zero emissions; other electricity is counted with its emission
+   intensity." Confirm the zero-emission rule and its reference (RED Art. 27 and
+   Delegated Regulation (EU) 2023/1184), and how other electricity is counted
+   (country values in the Annex or other permitted methods).
+8. **Definitions of ep, etd, eu, eccs** as written in `src/i18n.ts` (`efuelTerms`):
+   ep "emissions from the production process itself that are not already covered by
+   the inputs"; etd "transporting, storing and distributing the finished fuel"; eu
+   "emissions from burning the fuel in its end use"; eccs "capturing CO₂ from the
+   production process and storing it permanently underground".
+9. **Same method for both fuel types.** That the Annex formula applies to RFNBO and to
+   recycled carbon fuels alike.
+10. **Amendments.** Whether Delegated Regulation 2023/1185 has been amended since
+    publication (use the consolidated text if so), and that the link
+    https://eur-lex.europa.eu/eli/reg_del/2023/1185/oj opens it.
+11. **German terms.** "erneuerbare Kraftstoffe nicht biogenen Ursprungs", "wieder-
+    verwertete kohlenstoffhaltige Kraftstoffe", and the German term names
+    (Bereitstellung der Inputs, Verarbeitung, Transport und Vertrieb, Verbrennung bei
+    der Endnutzung, CO₂-Abscheidung und geologische Speicherung) against the German
+    text of the Regulation.
+
+SAF note:
+
+12. "Bio-based SAF, for example HEFA, uses the biofuel method" (Annex V) and "synthetic
+    aviation fuel made from renewable electricity uses the e-fuel method". Confirm, and
+    confirm that the Art. 29(10)(a)–(c) thresholds apply to biofuels used in aviation.
+
+Not legal values, for information:
+
+13. The explainer's "1.5 MJ of electricity per MJ of fuel" and "20 gCO₂eq/MJ" are an
+    illustration with round numbers, labelled as such, not values from the Regulation.
+
+Still open from PR 2:
+
+14. German preset names and the certificate title "Umweltschutzbeauftragter
+    (TÜV Rheinland)".
+
 ## Next
 
-- [ ] Owner: add `job-fit-scorer/Career_Agent_Profile_Unaiz.md`. Then run the three
-      test ads through the skill and extend the expected reasons, gaps and keywords
-      with the additional profile facts (score band, flag, language and base CV should
-      stay as they are).
+- Decided by the owner: the career profile file is private and must NOT be added to
+  this public repo. The job-fit scorer is used privately.
 - [ ] Owner: read the German texts once (see open questions).
 
 ## Acceptance criteria status (checked on the live URL)
