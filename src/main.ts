@@ -269,7 +269,15 @@ function initChartTooltips(): void {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') hide();
   });
-  window.addEventListener('scroll', hide, { passive: true });
+  // Focusing a control can scroll it into view: keep its tooltip and move it along.
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (current && current === document.activeElement) show(current);
+      else hide();
+    },
+    { passive: true },
+  );
   window.addEventListener('resize', hide);
   // Results re-render on every input; drop a tooltip whose bar is gone.
   new MutationObserver(() => {
