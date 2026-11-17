@@ -4,7 +4,7 @@ A free web tool that calculates the greenhouse gas savings of a biofuel under **
 
 It answers a question that comes up often: why can a fuel be 99% bio and save only 78%?
 
-**Live tool:** <!-- LIVE_URL --> _added after the first production deploy_
+**Live tool:** https://red2-ghg-calculator.pages.dev
 
 ![Screenshot of the calculator](docs/screenshot.png)
 

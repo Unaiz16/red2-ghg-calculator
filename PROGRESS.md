@@ -30,29 +30,32 @@ Handover file so another session can continue. Update after every step.
 - [x] 7. README (screenshot, method, sources, disclaimer, how to run) and
       `LINKEDIN_POST.md` (175 words, 3 hashtags). Both still need the live URL.
 
+- [x] 6. PR 1 merged, Cloudflare Pages deploys from `main`.
+      Live: https://red2-ghg-calculator.pages.dev
+- [x] 7b. Live URL added to README and LinkedIn post; post wording fixed as the
+      owner asked (generic opening, removed a sentence that was not a profile fact).
+- [x] 8. Final acceptance check on the live URL (17.11.2026): all pass.
+
 ## Next
 
-- [ ] 6. Push branch `claude/gracious-euler-1vnfuh`, open PR to `main`, confirm CI is
-      green on GitHub, owner merges, Cloudflare Pages deploys.
-- [ ] After deploy: put the live URL into `README.md` (marker `<!-- LIVE_URL -->`) and
-      `LINKEDIN_POST.md` (`LIVE_URL`), check the live site (loads, no console errors).
-- [ ] 8. Final acceptance check on the live URL and report to the owner.
-- [ ] Stretch, only after everything above is live: A. German version (EN/DE toggle),
-      B. `job-fit-scorer/` Claude skill. Not started.
+- [ ] Stretch A: German version (EN/DE toggle, plain technical German).
+- [ ] Stretch B: `job-fit-scorer/` Claude skill (SKILL.md + 3 test job ads with
+      expected outputs). Needs `Career_Agent_Profile_Unaiz.md` from the owner in that
+      folder; the skill must use only facts from that file.
 
-## Acceptance criteria status (local, production build via `vite preview`)
+## Acceptance criteria status (checked on the live URL)
 
 | Criterion | Status |
 | --- | --- |
-| E = 20.68 → 78.0%; E = 94 → 0%; E = 0 → 100%; negative E handled and labelled | pass (unit tests + browser check) |
-| Thresholds at 05.10.2015, 06.10.2015, 01.01.2021 | pass (unit tests + browser check) |
-| Blend 50% fossil + 50% at E = 20 → 57 g/MJ, 39.4% | pass (unit test + browser check) |
-| Presets reproduce 84, 83, 47, 59, 70% | pass (unit tests) |
-| Vitest green in GitHub Actions | pending first run on GitHub |
-| Usable at 360 px (no horizontal overflow), Lighthouse accessibility ≥ 90, no console errors | pass locally: accessibility 100, best practices 100, 0 console errors |
-| Live URL works | pending deploy |
-| README complete | done except live URL |
-| LinkedIn draft | done except live URL |
+| E = 20.68 → 78.0%; E = 94 → 0%; E = 0 → 100%; negative E handled and labelled | pass |
+| Thresholds at 05.10.2015, 06.10.2015, 01.01.2021 | pass |
+| Blend 50% fossil + 50% at E = 20 → 57 g/MJ, 39.4% | pass |
+| Presets reproduce 84, 83, 47, 59, 70% | pass |
+| Vitest green in GitHub Actions | pass (PR 1) |
+| Usable at 360 px, Lighthouse accessibility ≥ 90, no console errors | pass: accessibility 100, best practices 100, 0 console errors |
+| Live URL works | pass |
+| README: screenshot, method, sources, disclaimer, how to run | pass |
+| LinkedIn draft: 120–180 words, max 3 hashtags, About facts only, link | pass (169 words) |
 
 ## How the browser checks were run
 
@@ -64,4 +67,5 @@ scenarios and screenshots, and `npx lighthouse http://localhost:4173/` with
 
 - Resolved: the repository was completely empty when work started. With the owner's
   approval, `main` was created from the README-only "Initial commit" of this branch.
-- Live URL is not known yet (depends on the Cloudflare Pages project name).
+- The cloud session needs `red2-ghg-calculator.pages.dev` on its network allowlist to
+  check the live site (environment "Unaiz web tools" has it).
