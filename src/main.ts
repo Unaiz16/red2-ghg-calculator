@@ -5,6 +5,7 @@ import {
   MAX_BLEND_COMPONENTS,
   ZERO_INPUTS,
   blend,
+  isIsoDate,
   meetsThreshold,
   round,
   savingsPercent,
@@ -91,34 +92,281 @@ async function copyText(text: string): Promise<boolean> {
 
 /* ---------- Chart ---------- */
 
-interface Bar {
+interface Segment {
+  /** Short label, trusted HTML (symbol or escaped name). */
   labelHtml: string;
+  /** Plain-text name for tooltips and screen readers. */
+  name: string;
+  /** Signed contribution in gCO2eq/MJ: positive adds, negative subtracts. */
   value: number;
-  kind: 'emission' | 'credit' | 'total' | 'fossil';
+  tone?: 'fossil';
 }
 
-function renderChart(bars: Bar[], caption: string): string {
-  const max = Math.max(FOSSIL_COMPARATOR, ...bars.map((b) => Math.abs(b.value)));
-  const rows = bars
-    .map((b) => {
-      const negative = b.kind === 'credit' || b.value < 0;
-      const width = (Math.abs(b.value) / max) * 100;
-      const shown = b.kind === 'credit' ? -Math.abs(b.value) : b.value;
-      return `<li class="bar-row ${b.kind}${negative ? ' negative' : ''}">
-        <span class="bar-label">${b.labelHtml}</span>
-        <span class="bar-track" aria-hidden="true"><span class="bar" style="width:${width.toFixed(2)}%"></span></span>
-        <span class="bar-value">${fmt(shown, 2)}</span>
-      </li>`;
-    })
-    .join('');
+interface ChartSpec {
+  caption: string;
+  addedLabel: string;
+  totalLabel: string;
+  segments: Segment[];
+  total: number;
+  /** Minimum saving in percent; draws the threshold line when set. */
+  thresholdPercent?: number;
+}
+
+function renderChart(spec: ChartSpec): string {
+  const added = spec.segments.filter((sg) => sg.value > 0);
+  const subtracted = spec.segments.filter((sg) => sg.value < 0);
+  const gross = added.reduce((sum, sg) => sum + sg.value, 0);
+  const lo = Math.min(0, spec.total);
+  const hi = Math.max(FOSSIL_COMPARATOR, gross) * 1.04;
+  const x = (v: number) => ((v - lo) / (hi - lo)) * 100;
+  const pct = (v: number) => `${v.toFixed(3)}%`;
+
+  const seg = (sg: Segment, from: number, to: number, cls: string) => {
+    const tip = `${sg.name}: ${fmt(sg.value, 2)} ${UNIT}`;
+    return `<span class="seg ${cls}" style="left:${pct(x(from))};width:${pct(x(to) - x(from))}" tabindex="0" role="img" aria-label="${esc(tip)}" data-tip="${esc(tip)}"></span>`;
+  };
+
+  let cursor = 0;
+  let tint = 0;
+  const addedSegs = added
+    .map((sg) => {
+      const from = cursor;
+      cursor += sg.value;
+      const cls = sg.tone === 'fossil' ? 'fossil' : `t${tint++ % 5}`;
+      return { sg, cls, html: seg(sg, from, cursor, cls) };
+    });
+
+  let back = gross;
+  const subtractedSegs = subtracted.map((sg) => {
+    const to = back;
+    back += sg.value;
+    return seg(sg, back, to, 'minus');
+  });
+
+  const totalTip = `${spec.totalLabel}: ${fmt(spec.total, 2)} ${UNIT}`;
+  const totalSeg = `<span class="seg total" style="left:${pct(x(Math.min(0, spec.total)))};width:${pct(Math.abs(x(spec.total) - x(0)))}" tabindex="0" role="img" aria-label="${esc(totalTip)}" data-tip="${esc(totalTip)}"></span>`;
+
+  const limit =
+    spec.thresholdPercent === undefined ? undefined : FOSSIL_COMPARATOR * (1 - spec.thresholdPercent / 100);
+
+  const lines = [
+    lo < 0 ? `<span class="vline zero" style="left:${pct(x(0))}"></span>` : '',
+    limit === undefined ? '' : `<span class="vline threshold" style="left:${pct(x(limit))}"></span>`,
+    `<span class="vline comparator" style="left:${pct(x(FOSSIL_COMPARATOR))}"></span>`,
+  ].join('');
+
+  const row = (label: string, content: string, cls = '') =>
+    `<div class="plot-row ${cls}"><span class="plot-label">${label}</span><span class="track">${content}</span></div>`;
+
+  const legend = [
+    ...addedSegs.map(
+      ({ sg, cls }) => `<li><span class="key ${cls}"></span>${sg.labelHtml} <span class="num">${fmt(sg.value, 2)}</span></li>`,
+    ),
+    ...subtracted.map(
+      (sg) => `<li><span class="key minus"></span>${sg.labelHtml} <span class="num">${fmt(sg.value, 2)}</span></li>`,
+    ),
+    `<li><span class="key total"></span>${esc(spec.totalLabel)} <span class="num">${fmt(spec.total, 2)}</span></li>`,
+  ].join('');
+
+  const mid = (lo + hi / 1.04) / 2;
   return `<figure class="chart">
-    <figcaption>${caption}</figcaption>
-    <ul class="bars">${rows}
-      <li class="bar-row axis" aria-hidden="true"><span class="axis-unit">${UNIT}</span><span class="axis-ticks"><span>0</span><span>${fmtInput(max / 2)}</span><span>${fmtInput(max)}</span></span><span></span></li>
-    </ul>
-    <p class="chart-legend"><span><span class="key"></span>Emissions</span><span><span class="key total"></span>Total</span><span><span class="key negative"></span>Subtracted or negative</span><span><span class="key fossil"></span>Fossil, 94</span></p>
+    <figcaption>${spec.caption}</figcaption>
+    <div class="plot">
+      <div class="plot-row marks" aria-hidden="true"><span class="plot-label"></span><span class="track">
+        <span class="mark comparator" style="left:${pct(x(FOSSIL_COMPARATOR))}">Fossil comparator 94</span>
+        ${limit === undefined ? '' : `<span class="mark threshold" style="left:${pct(x(limit))}">${spec.thresholdPercent}% minimum</span>`}
+      </span></div>
+      <div class="plot-body">
+        ${row(esc(spec.addedLabel), addedSegs.map((a) => a.html).join(''))}
+        ${subtractedSegs.length ? row('Subtracted', subtractedSegs.join('')) : ''}
+        ${row(esc(spec.totalLabel), totalSeg, 'net')}
+        <div class="plot-lines" aria-hidden="true"><span class="plot-label"></span><span class="track">${lines}</span></div>
+      </div>
+      <div class="plot-row axis" aria-hidden="true"><span class="plot-label">${UNIT}</span><span class="track">
+        <span class="tick" style="left:${pct(x(lo))}">${fmtInput(lo)}</span>
+        <span class="tick" style="left:${pct(x(mid))}">${fmtInput(mid)}</span>
+        <span class="tick" style="left:${pct(x(hi / 1.04))}">${fmtInput(hi / 1.04)}</span>
+      </span></div>
+    </div>
+    <ul class="chart-legend">${legend}</ul>
+    <p class="hint">${
+      limit === undefined
+        ? `Solid line: fossil fuel comparator, 94 ${UNIT}.`
+        : `Solid line: fossil fuel comparator, 94 ${UNIT}. Dashed line: E must be at or below ${fmt(limit, 2)} ${UNIT} to save ${spec.thresholdPercent}%.`
+    } Hover, tap or focus a bar for the exact value.</p>
   </figure>`;
 }
+
+/* Floating tooltip for chart segments: hover, tap and keyboard focus. */
+function initChartTooltips(): void {
+  const tip = document.createElement('div');
+  tip.className = 'chart-tip';
+  tip.hidden = true;
+  tip.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(tip);
+  let current: HTMLElement | null = null;
+
+  const show = (el: HTMLElement) => {
+    current = el;
+    tip.textContent = el.dataset.tip ?? '';
+    tip.hidden = false;
+    const r = el.getBoundingClientRect();
+    const t = tip.getBoundingClientRect();
+    const left = Math.min(Math.max(8, r.left + r.width / 2 - t.width / 2), window.innerWidth - t.width - 8);
+    const above = r.top - t.height - 6;
+    tip.style.left = `${left + window.scrollX}px`;
+    tip.style.top = `${(above < 4 ? r.bottom + 6 : above) + window.scrollY}px`;
+  };
+  const hide = () => {
+    current = null;
+    tip.hidden = true;
+  };
+  const target = (e: Event) => (e.target instanceof Element ? e.target.closest<HTMLElement>('[data-tip]') : null);
+
+  document.addEventListener('pointerover', (e) => {
+    const el = target(e);
+    if (el) show(el);
+    else if (current && !current.matches(':focus-visible')) hide();
+  });
+  document.addEventListener('focusin', (e) => {
+    const el = target(e);
+    if (el) show(el);
+    else hide();
+  });
+  document.addEventListener('click', (e) => {
+    const el = target(e);
+    if (el) show(el);
+    else hide();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hide();
+  });
+  window.addEventListener('scroll', hide, { passive: true });
+  window.addEventListener('resize', hide);
+  // Results re-render on every input; drop a tooltip whose bar is gone.
+  new MutationObserver(() => {
+    if (current && !current.isConnected) hide();
+  }).observe(document.body, { childList: true, subtree: true });
+}
+
+/* ---------- Number transitions (≤ 200 ms, off with reduced motion) ---------- */
+
+const previousValues = new Map<string, number>();
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function animNum(key: string, value: number, decimals: number, suffix = ''): string {
+  return `<span data-anim="${key}" data-value="${value}" data-dec="${decimals}" data-suffix="${suffix}">${fmt(value, decimals)}${suffix}</span>`;
+}
+
+function runNumberTransitions(root: HTMLElement): void {
+  for (const el of root.querySelectorAll<HTMLElement>('[data-anim]')) {
+    const key = el.dataset.anim!;
+    const to = Number(el.dataset.value);
+    const decimals = Number(el.dataset.dec);
+    const suffix = el.dataset.suffix ?? '';
+    const from = previousValues.get(key);
+    previousValues.set(key, to);
+    if (from === undefined || from === to || reducedMotion.matches) continue;
+    const start = performance.now();
+    const duration = 180;
+    const step = (now: number) => {
+      if (!el.isConnected) return;
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - (1 - t) * (1 - t);
+      el.textContent = `${fmt(from + (to - from) * eased, decimals)}${suffix}`;
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+}
+
+/* ---------- Shareable link: inputs live in the URL ---------- */
+
+let urlTimer: number | undefined;
+function scheduleUrlUpdate(): void {
+  window.clearTimeout(urlTimer);
+  urlTimer = window.setTimeout(() => {
+    try {
+      history.replaceState(null, '', `${location.pathname}?${buildQuery()}`);
+    } catch {
+      // history can be unavailable (e.g. file://); sharing still works via the button.
+    }
+  }, 250);
+}
+
+function shareUrl(): string {
+  return `${location.origin}${location.pathname}?${buildQuery()}`;
+}
+
+function currentMode(): 'single' | 'blend' {
+  return document.querySelector<HTMLInputElement>('input[name="mode"]:checked')?.value === 'blend' ? 'blend' : 'single';
+}
+
+function buildQuery(): string {
+  const q = new URLSearchParams();
+  q.set('mode', currentMode());
+  if (currentMode() === 'blend') {
+    for (const row of blendRows) {
+      q.append('c', [row.name.replace(/~/g, ' '), row.fossil ? 'f' : 'b', row.energy, row.fossil ? '' : row.e].join('~'));
+    }
+    return q.toString();
+  }
+  if (presetSelect.value) q.set('preset', presetSelect.value);
+  for (const term of TERMS) {
+    const v = termInput(term.key).value.trim();
+    if (v !== '' && Number(v) !== 0) q.set(term.key, v);
+  }
+  if (startDate.value) q.set('start', startDate.value);
+  return q.toString();
+}
+
+function applyQuery(): void {
+  const q = new URLSearchParams(location.search);
+  if ([...q.keys()].length === 0) return;
+
+  const preset = q.get('preset');
+  const hasTerms = TERMS.some((t) => q.has(t.key));
+  if (preset && PRESETS.some((p) => p.id === preset)) {
+    presetSelect.value = preset;
+    applyPreset(preset);
+  } else if (hasTerms || q.has('mode')) {
+    presetSelect.value = '';
+    for (const term of TERMS) termInput(term.key).value = '0';
+  }
+  for (const term of TERMS) {
+    const raw = q.get(term.key);
+    if (raw !== null && raw.trim() !== '' && Number.isFinite(Number(raw))) termInput(term.key).value = String(Number(raw));
+  }
+  // A link with edited values is a custom calculation, as in the form itself.
+  const active = PRESETS.find((p) => p.id === presetSelect.value);
+  if (active) {
+    const expected: Partial<Record<TermKey, number>> = { eec: active.eec, ep: active.ep, etd: active.etd };
+    const edited = TERMS.some((t) => t.key !== 'el' && Number(termInput(t.key).value) !== (expected[t.key] ?? 0));
+    if (edited) presetSelect.value = '';
+  }
+  const start = q.get('start');
+  if (start && isIsoDate(start)) startDate.value = start;
+
+  const comps = q.getAll('c').slice(0, MAX_BLEND_COMPONENTS);
+  const rows: BlendRow[] = [];
+  for (const c of comps) {
+    const [name = '', kind = 'b', energy = '', e = ''] = c.split('~');
+    const num = (v: string) => (v.trim() !== '' && Number.isFinite(Number(v)) ? String(Number(v)) : '');
+    rows.push({ name: name.slice(0, 40), fossil: kind === 'f', energy: num(energy), e: kind === 'f' ? '94' : num(e) });
+  }
+  if (rows.length) blendRows = rows;
+
+  if (q.get('mode') === 'blend') {
+    const radio = $<HTMLInputElement>('input[name="mode"][value="blend"]');
+    radio.checked = true;
+  }
+}
+
+const ACTIONS = (mode: 'single' | 'blend') => `<div class="row-actions">
+    <button type="button" class="btn primary" data-copy="${mode}">Copy result</button>
+    <button type="button" class="btn" data-copy-link>Copy link</button>
+    <button type="button" class="btn" data-print>Print</button>
+  </div>`;
 
 function savingsNote(e: number): string {
   if (e < 0) {
@@ -198,6 +446,7 @@ function updatePresetNote(inputs: PathwayInputs): void {
 }
 
 function renderSingle(): void {
+  scheduleUrlUpdate();
   const { inputs, valid } = readSingle();
   updatePresetNote(inputs);
 
@@ -215,11 +464,16 @@ function renderSingle(): void {
   let thresholdLine = 'Threshold: no valid installation start date given';
   if (threshold) {
     const pass = meetsThreshold(e, threshold);
-    badge = `<p class="verdict ${pass ? 'pass' : 'fail'}">
+    const gap = round(saving, 1) - threshold.percent;
+    const gapText =
+      round(gap, 1) === 0
+        ? 'exactly at the threshold'
+        : `${fmt(Math.abs(gap))} percentage points ${pass ? 'above' : 'below'} the threshold`;
+    badge = `<div class="verdict ${pass ? 'pass' : 'fail'}">
       <span class="badge">${pass ? 'Pass' : 'Fail'}</span>
-      <span>${pass ? 'Meets' : 'Does not meet'} the ${threshold.percent}% minimum of Art. 29(10)(${threshold.point}) for an installation that started operation on ${fmtDate(startDate.value)}.</span>
-    </p>`;
-    thresholdLine = `Threshold Art. 29(10)(${threshold.point}), installation start ${fmtDate(startDate.value)}: ${threshold.percent}% minimum: ${pass ? 'PASS' : 'FAIL'}`;
+      <p><strong>${gapText.charAt(0).toUpperCase()}${gapText.slice(1)}.</strong> ${pass ? 'Meets' : 'Does not meet'} the ${threshold.percent}% minimum of Art. 29(10)(${threshold.point}) for an installation that started operation on ${fmtDate(startDate.value)}.</p>
+    </div>`;
+    thresholdLine = `Threshold Art. 29(10)(${threshold.point}), installation start ${fmtDate(startDate.value)}: ${threshold.percent}% minimum: ${pass ? 'PASS' : 'FAIL'} (${gapText})`;
   }
 
   const rows = TERMS.map((term) => {
@@ -232,23 +486,22 @@ function renderSingle(): void {
     </tr>`;
   }).join('');
 
-  const bars: Bar[] = [];
-  for (const term of TERMS) {
-    const v = inputs[term.key];
-    if (v === 0) continue;
+  const segments: Segment[] = TERMS.map((term) => {
     const credit = (CREDIT_TERMS as readonly string[]).includes(term.key);
-    bars.push({ labelHtml: sym(term), value: v, kind: credit ? 'credit' : 'emission' });
-  }
-  bars.push({ labelHtml: 'E total', value: e, kind: 'total' });
-  bars.push({ labelHtml: 'Fossil', value: FOSSIL_COMPARATOR, kind: 'fossil' });
+    return {
+      labelHtml: sym(term),
+      name: `${term.key}, ${term.label.toLowerCase()}`,
+      value: (credit ? -inputs[term.key] : inputs[term.key]) + 0,
+    };
+  });
 
   const preset = PRESETS.find((p) => p.id === presetSelect.value);
 
   singleResults.innerHTML = `
     <h3>Result</h3>
     <div class="headline">
-      <div class="big"><span class="big-label">GHG savings</span><span class="big-num">${fmt(saving)}%</span></div>
-      <div class="big"><span class="big-label">Total emissions E</span><span class="big-num">${fmt(e, 2)} <span class="unit">${UNIT}</span></span></div>
+      <div class="big"><span class="big-label">GHG savings</span><span class="big-num">${animNum('s-saving', saving, 1, '%')}</span></div>
+      <div class="big"><span class="big-label">Total emissions E</span><span class="big-num">${animNum('s-e', e, 2)} <span class="unit">${UNIT}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(e, 2)}) / 94 = ${fmt(saving)}%</p>
     ${savingsNote(e)}
@@ -265,9 +518,17 @@ function renderSingle(): void {
         </tfoot>
       </table>
     </div>
-    ${renderChart(bars, `Emissions by term compared with the fossil comparator, ${UNIT}`)}
-    <button type="button" class="btn primary" data-copy="single">Copy result</button>
+    ${renderChart({
+      caption: `Contribution of each term, ${UNIT}`,
+      addedLabel: 'Emissions',
+      totalLabel: 'E (total)',
+      segments,
+      total: e,
+      thresholdPercent: threshold?.percent,
+    })}
+    ${ACTIONS('single')}
   `;
+  runNumberTransitions(singleResults);
 
   const termText = (keys: readonly TermKey[], sign: string) =>
     keys.map((k) => `${sign} ${k} ${fmtInput(inputs[k])}`).join(' ');
@@ -278,6 +539,7 @@ function renderSingle(): void {
     `GHG savings = (94 − ${fmt(e, 2)}) / 94 = ${fmt(saving)}%`,
     e < 0 ? 'Note: net-negative emissions, saving above 100%.' : '',
     thresholdLine,
+    `Link: ${shareUrl()}`,
     DISCLAIMER,
   ]
     .filter(Boolean)
@@ -355,7 +617,6 @@ function initSingle(): void {
   // Start with a preset so the page shows a real result straight away.
   presetSelect.value = PRESETS[0].id;
   applyPreset(PRESETS[0].id);
-  renderSingle();
 }
 
 /* ---------- Blend ---------- */
@@ -412,6 +673,7 @@ function renderBlendRows(): void {
 }
 
 function renderBlend(): void {
+  scheduleUrlUpdate();
   let valid = true;
   const components = blendRows.map((row, i) => {
     const energy = row.energy.trim() === '' ? NaN : Number(row.energy);
@@ -453,19 +715,20 @@ function renderBlend(): void {
     })
     .join('');
 
-  const bars: Bar[] = components.map((c) => ({
-    labelHtml: esc(c.name),
-    value: c.e,
-    kind: c.fossil ? 'fossil' : 'emission',
-  }));
-  bars.push({ labelHtml: 'Blend', value: result.intensity, kind: 'total' });
-  bars.push({ labelHtml: 'Fossil', value: FOSSIL_COMPARATOR, kind: 'fossil' });
+  const segments: Segment[] = components
+    .filter((c) => c.energyMJ > 0)
+    .map((c) => ({
+      labelHtml: esc(c.name),
+      name: `${c.name}, ${fmt((c.energyMJ / result.totalEnergyMJ) * 100)}% of the energy at ${fmt(c.e, 2)} ${UNIT}, contributes`,
+      value: ((c.energyMJ / result.totalEnergyMJ) * c.e) + 0,
+      tone: c.fossil ? ('fossil' as const) : undefined,
+    }));
 
   blendResults.innerHTML = `
     <h3>Blend result</h3>
     <div class="headline">
-      <div class="big"><span class="big-label">GHG savings of the blend</span><span class="big-num">${fmt(result.savingsPercent)}%</span></div>
-      <div class="big"><span class="big-label">Energy-weighted intensity</span><span class="big-num">${fmt(result.intensity, 2)} <span class="unit">${UNIT}</span></span></div>
+      <div class="big"><span class="big-label">GHG savings of the blend</span><span class="big-num">${animNum('b-saving', result.savingsPercent, 1, '%')}</span></div>
+      <div class="big"><span class="big-label">Energy-weighted intensity</span><span class="big-num">${animNum('b-e', result.intensity, 2)} <span class="unit">${UNIT}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(result.intensity, 2)}) / 94 = ${fmt(result.savingsPercent)}%</p>
     <p class="compare">Bio content by energy: <strong>${fmt(result.bioSharePercent)}%</strong>. GHG savings: <strong>${fmt(result.savingsPercent)}%</strong>. The gap comes from the emissions of making the bio components.</p>
@@ -478,10 +741,17 @@ function renderBlend(): void {
         <tfoot><tr><th scope="row">Blend</th><td class="num">${fmtInput(result.totalEnergyMJ)}</td><td class="num">100.0</td><td class="num">${fmt(result.intensity, 2)}</td></tr></tfoot>
       </table>
     </div>
-    ${renderChart(bars, `Emission intensity of each component and of the blend, ${UNIT}`)}
+    ${renderChart({
+      caption: `Contribution of each component to the blend, ${UNIT}`,
+      addedLabel: 'Components',
+      totalLabel: 'Blend',
+      segments,
+      total: result.intensity,
+    })}
     <p class="hint">The Art. 29(10) minimum saving applies to the biofuel itself, not to a blend with fossil fuel, so no pass/fail is shown here.</p>
-    <button type="button" class="btn primary" data-copy="blend">Copy result</button>
+    ${ACTIONS('blend')}
   `;
+  runNumberTransitions(blendResults);
 
   lastBlendCopy = [
     `Blend GHG savings, ${LABEL}`,
@@ -491,13 +761,12 @@ function renderBlend(): void {
     `Energy-weighted intensity = ${fmt(result.intensity, 2)} ${UNIT}`,
     `GHG savings = (94 − ${fmt(result.intensity, 2)}) / 94 = ${fmt(result.savingsPercent)}%`,
     `Bio content by energy = ${fmt(result.bioSharePercent)}%`,
+    `Link: ${shareUrl()}`,
     DISCLAIMER,
   ].join('\n');
 }
 
 function initBlend(): void {
-  renderBlendRows();
-  renderBlend();
 
   blendRowsEl.addEventListener('input', (event) => {
     const target = event.target as HTMLInputElement;
@@ -553,18 +822,33 @@ function initBlend(): void {
 function initModeSwitch(): void {
   const single = $('#panel-single');
   const blendPanel = $('#panel-blend');
+  const sync = () => {
+    single.hidden = currentMode() !== 'single';
+    blendPanel.hidden = currentMode() !== 'blend';
+  };
   for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="mode"]')) {
     radio.addEventListener('change', () => {
-      if (!radio.checked) return;
-      single.hidden = radio.value !== 'single';
-      blendPanel.hidden = radio.value !== 'blend';
+      sync();
+      scheduleUrlUpdate();
     });
   }
+  sync();
 }
 
 function initCopy(): void {
   document.addEventListener('click', async (event) => {
-    const btn = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-copy]');
+    const el = event.target as HTMLElement;
+    if (el.closest('[data-print]')) {
+      window.print();
+      return;
+    }
+    const linkBtn = el.closest<HTMLButtonElement>('[data-copy-link]');
+    if (linkBtn) {
+      const done = await copyText(shareUrl());
+      announce(done ? 'Link copied. It opens the calculator with these inputs.' : 'Copying failed. Copy the address from the browser instead.');
+      return;
+    }
+    const btn = el.closest<HTMLButtonElement>('[data-copy]');
     if (!btn) return;
     const text = btn.dataset.copy === 'blend' ? lastBlendCopy : lastSingleCopy;
     if (!text) return;
@@ -586,8 +870,13 @@ function initExplainer(): void {
   ).join('');
 }
 
-initModeSwitch();
 initSingle();
 initBlend();
+applyQuery();
+initModeSwitch();
+renderBlendRows();
+renderSingle();
+renderBlend();
 initCopy();
+initChartTooltips();
 initExplainer();

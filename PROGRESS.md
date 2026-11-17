@@ -20,6 +20,11 @@ Handover file so another session can continue. Update after every step.
 - [x] 3. UI, restyled to the owner's design brief (datasheet look: neutral palette,
       one muted green accent, monospace tabular figures, thin rules, no gradients,
       shadows or animation). Checked by screenshot at 360 px and 1280 px.
+- [x] 3b. Owner's second brief: live recalculation, number transitions (180 ms, off
+      with reduced motion), stacked chart with comparator and threshold lines and
+      tooltips, percentage points above/below threshold, shareable link (inputs in the
+      URL query), light and dark mode, print stylesheet (one page), container queries.
+      Owner said: do not send screenshots, take all design decisions yourself.
 - [x] 4. Presets + one test per preset against the Annex V Part A default saving
 - [x] 5. CI workflow written (runs on pull requests and on pushes to `main`)
 - [x] 7. README (screenshot, method, sources, disclaimer, how to run) and
@@ -57,7 +62,6 @@ scenarios and screenshots, and `npx lighthouse http://localhost:4173/` with
 
 ## Open questions
 
-- The repository was completely empty (no README, no `main` branch) when work started.
-  A pull request needs `main` to exist first. The branch history starts with a
-  README-only "Initial commit" so that `main` can be created from it.
+- Resolved: the repository was completely empty when work started. With the owner's
+  approval, `main` was created from the README-only "Initial commit" of this branch.
 - Live URL is not known yet (depends on the Cloudflare Pages project name).

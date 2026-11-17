@@ -12,12 +12,13 @@ It answers a question that comes up often: why can a fuel be 99% bio and save on
 
 ## What it does
 
-- **Single pathway.** Enter the eight terms in gCO2eq/MJ, get total emissions E and the GHG savings, with a breakdown table and a bar chart.
+- **Single pathway.** Enter the eight terms in gCO2eq/MJ, get total emissions E and the GHG savings. Results update as you type.
 - **Threshold check.** Pass or fail against the minimum saving for transport biofuels, based on the date the installation started operation.
 - **Blend mode.** Up to 5 components with energy amount (MJ) and E. Fossil components count as 94 gCO2eq/MJ. Output: energy-weighted intensity, blend savings and bio content by energy.
 - **Presets.** Five Annex V default pathways.
 - **Explainer.** Bio content versus GHG savings, and what each term means.
-- **Copy result.** Plain-text summary for notes or email.
+- **Chart.** Stacked contribution of each term against the fossil comparator line (94) and the threshold line, with exact values on hover, tap or keyboard focus.
+- **Copy result, copy link, print.** Plain-text summary for notes or email, a shareable link that carries the inputs in the URL, and a one-page print layout.
 
 No backend, no API keys, no tracking, no cookies. Everything runs in the browser.
 

@@ -169,17 +169,24 @@ h3 {
   min-width: 0;
 }
 
+/* Layout responds to the space each block has, not to the viewport. */
+#calculator {
+  container: calculator / inline-size;
+}
+.card {
+  container: card / inline-size;
+}
 .panel-grid {
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
-@media (min-width: 860px) {
+@container calculator (min-width: 820px) {
   .panel-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
-  .card {
+  .panel-grid > .card {
     padding: 20px;
   }
 }
@@ -304,7 +311,7 @@ legend {
   gap: 0 16px;
   grid-template-columns: minmax(0, 1fr);
 }
-@media (min-width: 520px) {
+@container card (min-width: 440px) {
   #emission-fields,
   #credit-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -400,7 +407,22 @@ sub {
 .row-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+}
+.btn,
+.mode-switch span,
+.info-btn,
+input,
+select {
+  transition:
+    border-color 0.12s,
+    background-color 0.12s,
+    color 0.12s;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }
 
 /* Blend */
@@ -462,6 +484,16 @@ sub {
   font-weight: 600;
   line-height: 1.25;
 }
+@container card (max-width: 300px) {
+  .headline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .big + .big {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
 .big-num .unit {
   font-family: var(--sans);
   font-size: 0.8125rem;
@@ -490,6 +522,9 @@ sub {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+}
+.verdict p {
+  margin: 0;
 }
 .verdict.pass {
   border-left-color: var(--pass);
@@ -582,80 +617,164 @@ table.breakdown {
   color: var(--muted);
 }
 
-/* Chart */
+/* Chart: stacked contributions against the comparator and threshold lines */
 .chart {
   margin: 0 0 16px;
+  --label-w: 6.6em;
 }
-.bars {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 5px;
+.plot {
+  font-size: 0.8438rem;
 }
-.bar-row {
+.plot-row,
+.plot-lines {
   display: grid;
-  grid-template-columns: minmax(56px, 26%) minmax(0, 1fr) 4.2em;
+  grid-template-columns: var(--label-w) minmax(0, 1fr);
   gap: 8px;
   align-items: center;
-  font-size: 0.875rem;
 }
-.bar-label {
+.plot-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.bar-track {
-  display: block;
-  height: 14px;
-  border-left: 1px solid var(--line-strong);
-}
-.bar {
-  display: block;
-  height: 100%;
-  min-width: 1px;
-  background: var(--accent);
-}
-.bar-row.total .bar {
-  background: var(--ink);
-}
-.bar-row.total .bar-label,
-.bar-row.total .bar-value {
+.plot-row.net .plot-label {
   font-weight: 650;
 }
-.bar-row.fossil .bar {
+.track {
+  position: relative;
+  display: block;
+  height: 22px;
+}
+.plot-body {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 6px 0;
+}
+.plot-body .track {
+  border-left: 1px solid var(--line-strong);
+}
+.seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  background: var(--accent);
+  box-shadow: inset -1px 0 0 var(--surface);
+  cursor: default;
+}
+.seg:hover,
+.seg:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+  z-index: 2;
+}
+.seg.t1,
+.key.t1 {
+  background: color-mix(in srgb, var(--accent) 72%, var(--surface));
+}
+.seg.t2,
+.key.t2 {
+  background: color-mix(in srgb, var(--accent) 50%, var(--surface));
+}
+.seg.t3,
+.key.t3 {
+  background: color-mix(in srgb, var(--accent) 34%, var(--surface));
+}
+.seg.t4,
+.key.t4 {
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+}
+.seg.fossil,
+.key.fossil {
   background: var(--bar-fossil);
 }
-.bar-row.negative .bar {
-  background: transparent;
+.seg.minus,
+.key.minus {
+  background: var(--surface);
   border: 1.5px solid var(--ink);
+  box-shadow: none;
+}
+.seg.total,
+.key.total {
+  background: var(--ink);
+  box-shadow: none;
+}
+.plot-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.plot-lines .track {
+  height: 100%;
   border-left: 0;
 }
-.bar-value {
-  text-align: right;
+.vline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1.5px solid var(--ink);
 }
-.axis-ticks {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 3px;
+.vline.threshold {
+  border-left-style: dashed;
+}
+.vline.zero {
+  border-left: 1px solid var(--line-strong);
+}
+.plot-row.marks .track {
+  height: 2.6em;
+}
+.mark {
+  position: absolute;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.mark.comparator {
+  top: 0;
+  transform: translateX(-100%);
+  padding-right: 4px;
+}
+.mark.threshold {
+  bottom: 0;
+  padding-left: 4px;
+}
+.plot-row.axis {
+  align-items: start;
+}
+.plot-row.axis .plot-label,
+.tick {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.plot-row.axis .track {
+  height: 1.6em;
   border-top: 1px solid var(--line-strong);
-  font-size: 0.75rem;
-  color: var(--muted);
 }
-.bar-row .axis-unit {
-  font-size: 0.75rem;
-  color: var(--muted);
-  text-align: right;
+.tick {
+  position: absolute;
+  top: 3px;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+}
+.tick:first-child {
+  transform: none;
+}
+.tick:last-child {
+  transform: translateX(-100%);
 }
 .chart-legend {
+  list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
-  margin: 8px 0 0;
-  font-size: 0.8125rem;
-  color: var(--muted);
+  gap: 4px 16px;
+  margin: 10px 0 6px;
+  padding: 0;
+  font-size: 0.8438rem;
 }
-.chart-legend span {
+.chart-legend li {
   white-space: nowrap;
 }
 .key {
@@ -666,15 +785,17 @@ table.breakdown {
   vertical-align: -1px;
   background: var(--accent);
 }
-.key.total {
+.chart-tip {
+  position: absolute;
+  z-index: 20;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 5px 8px;
+  border-radius: 2px;
   background: var(--ink);
-}
-.key.fossil {
-  background: var(--bar-fossil);
-}
-.key.negative {
-  background: transparent;
-  border: 1.5px solid var(--ink);
+  color: var(--bg);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  pointer-events: none;
 }
 
 .status {
@@ -754,4 +875,106 @@ table.breakdown {
 }
 .site-footer p {
   margin: 0 0 8px;
+}
+
+/* Print: one clean page with the result of the active mode */
+@media print {
+  :root {
+    color-scheme: light;
+    --bg: #fff;
+    --surface: #fff;
+    --surface-2: #f0f0f0;
+    --ink: #000;
+    --muted: #333;
+    --line: #bbb;
+    --line-strong: #555;
+    --accent: #1d5c4d;
+    --accent-ink: #fff;
+    --bar-fossil: #8a908e;
+    --pass: #1b6e33;
+    --fail: #b3261e;
+    --note: #6a4a00;
+  }
+  @page {
+    margin: 14mm;
+  }
+  body {
+    font-size: 10.5pt;
+    line-height: 1.4;
+  }
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .skip-link,
+  .mode-switch,
+  #single-form,
+  #blend-form,
+  #explainer,
+  #about,
+  .status,
+  .row-actions,
+  .chart-tip,
+  .chart .hint:last-child,
+  noscript {
+    display: none !important;
+  }
+  .wrap {
+    max-width: none;
+    padding: 0;
+  }
+  .site-header {
+    padding: 0 0 8px;
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 16pt;
+  }
+  h2 {
+    display: none;
+  }
+  .panel-grid {
+    display: block;
+  }
+  .card {
+    border: 0;
+    padding: 0;
+  }
+  .disclaimer {
+    margin-bottom: 10px;
+  }
+  .breakdown th,
+  .breakdown td {
+    padding: 3px 4px;
+  }
+  .table-wrap,
+  .chart,
+  .verdict {
+    break-inside: avoid;
+  }
+  .site-footer {
+    margin-top: 8px;
+    padding: 6px 0 0;
+    font-size: 8pt;
+  }
+  .site-footer p:not(:first-child),
+  .subtitle {
+    display: none;
+  }
+  body {
+    font-size: 9.5pt;
+  }
+  .big-num {
+    font-size: 16pt;
+  }
+  .table-wrap,
+  .chart,
+  .verdict,
+  .flag {
+    margin-bottom: 8px;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
