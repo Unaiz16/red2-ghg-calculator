@@ -112,9 +112,13 @@ below are applied in hints, explainer and "?" help sentences, EN and DE.
 12. **German preset names** match Annex V DE; "Umweltschutzbeauftragter (TÜV
     Rheinland)" matches the owner's profile.
 
-Note for later sessions: the German unit "g CO₂-Äq./MJ" is used in the e-fuel mode
-only, as in the German text of the Regulation. The biofuel and blend modes keep
-"gCO₂eq/MJ" in German. Unifying them is an open design choice for the owner.
+Decided by the owner after PR 3: the German page uses "g CO₂-Äq./MJ" in all modes;
+English stays "gCO₂eq/MJ" (`unit` in `src/i18n.ts`, guarded by `tests/i18n.test.ts`).
+
+- [x] PR 4: German unit on the whole German page; About text without "both 2026" and
+      without the number of years ("Years of experience leading ..."); LinkedIn post
+      updated for biofuels, SAF and e-fuels, supplier comparison, help tooltips and
+      EN/DE (178 words); German post in `LINKEDIN_POST_DE.md` (177 words).
 
 ## Next
 

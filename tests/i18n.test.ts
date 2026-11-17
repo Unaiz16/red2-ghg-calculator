@@ -61,4 +61,20 @@ describe('detectLang', () => {
     expect(EN.percent('84.1')).toBe('84.1%');
     expect(DE.percent('84,1')).toBe('84,1 %');
   });
+
+  it('German uses the German unit everywhere and English the English one', () => {
+    const flat = (o: unknown): string =>
+      typeof o === 'string'
+        ? o
+        : typeof o === 'function'
+          ? String((o as (...a: unknown[]) => unknown)('1', '2', '3', '4', '5'))
+          : o && typeof o === 'object'
+            ? Object.values(o).map(flat).join(' ')
+            : '';
+    const de = `${flat(DE)} ${Object.values(STATIC_DE).join(' ')}`;
+    expect(de).not.toMatch(/gCO(₂|<sub>2<\/sub>)eq/);
+    expect(de).toContain('g CO₂-Äq./MJ');
+    expect(flat(EN)).not.toContain('Äq.');
+    expect(html).not.toContain('Äq.');
+  });
 });
