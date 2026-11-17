@@ -978,3 +978,49 @@ table.breakdown {
     text-decoration: none;
   }
 }
+
+/* Language switch */
+.lang-switch {
+  float: right;
+  display: inline-flex;
+  margin: 0 0 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface);
+}
+.lang-switch button {
+  min-width: 44px;
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lang-switch button + button {
+  border-left: 1px solid var(--line-strong);
+}
+.lang-switch button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+@media print {
+  .lang-switch {
+    display: none;
+  }
+}
+
+/* Long German compounds */
+label,
+legend,
+.breakdown th,
+.big-label,
+.plot-label,
+h1,
+h3 {
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
