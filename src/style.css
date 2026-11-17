@@ -306,14 +306,16 @@ legend {
   color: var(--muted);
 }
 #emission-fields,
-#credit-fields {
+#credit-fields,
+#efuel-fields {
   display: grid;
   gap: 0 16px;
   grid-template-columns: minmax(0, 1fr);
 }
 @container card (min-width: 440px) {
   #emission-fields,
-  #credit-fields {
+  #credit-fields,
+  #efuel-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   /* room for two label lines so inputs in a row stay aligned */
@@ -1023,4 +1025,65 @@ h1,
 h3 {
   hyphens: auto;
   overflow-wrap: break-word;
+}
+
+#efuel-form > .hint {
+  margin-bottom: 14px;
+}
+
+/* Help tooltips: small "?" next to labels */
+.help-btn {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 600 0.75rem var(--mono);
+  line-height: 1;
+  cursor: help;
+  position: relative;
+  vertical-align: middle;
+}
+.help-btn:hover,
+.help-btn:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* larger touch target without changing the layout */
+.help-btn::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+.label-row > [data-help] {
+  flex: none;
+  display: inline-flex;
+}
+.blend-foot .check + .help-btn {
+  margin-right: auto;
+}
+@media print {
+  .help-btn {
+    display: none;
+  }
+}
+
+.prose h4 {
+  margin: 18px 0 8px;
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+.prose ul + p,
+.prose ul + h4 {
+  margin-top: 12px;
+}
+.prose .example {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--note);
 }

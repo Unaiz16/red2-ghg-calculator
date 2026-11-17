@@ -1,6 +1,8 @@
-# Biofuel GHG Savings Calculator
+# Renewable Fuels GHG Savings Calculator
 
-A free web tool that calculates the greenhouse gas savings of a biofuel under **RED II as amended by RED III** (Directive (EU) 2018/2001, amended by Directive (EU) 2023/2413) and explains the result in plain language.
+GHG savings calculator for renewable transport fuels – biofuels, SAF and e-fuels (EU RED).
+
+A free web tool that calculates greenhouse gas savings under **RED II as amended by RED III** (Directive (EU) 2018/2001, amended by Directive (EU) 2023/2413) and explains the result in plain language.
 
 It answers a question that comes up often: why can a fuel be 99% bio and save only 78%?
 
@@ -12,14 +14,17 @@ It answers a question that comes up often: why can a fuel be 99% bio and save on
 
 ## What it does
 
-- **Single pathway.** Enter the eight terms in gCO2eq/MJ, get total emissions E and the GHG savings. Results update as you type.
+- **Biofuel (single pathway).** Enter the eight terms in gCO2eq/MJ, get total emissions E and the GHG savings. Results update as you type.
 - **Threshold check.** Pass or fail against the minimum saving for transport biofuels, based on the date the installation started operation.
-- **Blend mode.** Up to 5 components with energy amount (MJ) and E. Fossil components count as 94 gCO2eq/MJ. Output: energy-weighted intensity, blend savings and bio content by energy.
+- **Blend / compare supplier offers.** Up to 5 components with energy amount (MJ) and E. Fossil components count as 94 gCO2eq/MJ. Output: saving of each component, energy-weighted intensity, blend savings and bio content by energy.
+- **E-fuel (RFNBO / recycled carbon fuel).** E = ei + ep + etd + eu − eccs with the method of Commission Delegated Regulation (EU) 2023/1185, checked against the 70% minimum. No default values; user inputs only.
+- **SAF.** No separate maths. Under ReFuelEU Aviation (Regulation (EU) 2023/2405), aviation biofuels use the Annex V method (Biofuel mode); synthetic aviation fuels must meet the 70% threshold of RED Art. 29a(1) (E-fuel mode).
 - **Presets.** Five Annex V default pathways.
 - **Explainer.** Bio content versus GHG savings, and what each term means.
 - **Chart.** Stacked contribution of each term against the fossil comparator line (94) and the threshold line, with exact values on hover, tap or keyboard focus.
 - **Copy result, copy link, print.** Plain-text summary for notes or email, a shareable link that carries the inputs in the URL, and a one-page print layout.
 
+- **Help tooltips.** A "?" next to every input, term, threshold and result label with one plain sentence, on hover, keyboard focus and tap.
 - **English and German.** EN/DE toggle in the header. German browsers start in German; `?lang=de` or `?lang=en` in the link sets it explicitly.
 
 No backend, no API keys, no tracking, no cookies. Everything runs in the browser.
@@ -35,6 +40,10 @@ All references are to the consolidated text of Directive (EU) 2018/2001 of 16.07
 | GHG savings | (94 − E) / 94 | Annex V Part C |
 | Fuel in use | eu = 0 for biofuels | Annex V Part C point 13 |
 | Soil carbon (esca) | Counts only with solid, verifiable evidence of increased soil carbon, no risk of harming biodiversity, and accounting for extra fertiliser or herbicide use | Annex V Part C point 6 as amended by RED III |
+| E-fuel total emissions | E = ei + ep + etd + eu − eccs, with ei = ei elastic + ei rigid − e ex-use | Delegated Regulation (EU) 2023/1185, Annex Part A point 1 (and point 10) |
+| E-fuel comparator and savings | EF = 94 gCO2eq/MJ, savings = (EF − E) / EF | Delegated Regulation (EU) 2023/1185, Annex Part A point 2 |
+| E-fuel minimum saving | 70%, so E ≤ 28.2 gCO2eq/MJ | RFNBO: RED Art. 29a(1); recycled carbon fuels: RED Art. 29a(2) and Art. 2 of the Regulation |
+| Captured CO2 | eu is the total combustion emissions (point 13); CO2 from eligible sources is credited inside ei via e ex-use (point 10) | Delegated Regulation (EU) 2023/1185, Annex Part A |
 | Blend | Energy-weighted average of the component intensities; fossil components at 94 | Arithmetic, for illustration |
 
 ### Minimum savings for transport biofuels, Art. 29(10)(a)–(c)
@@ -65,6 +74,7 @@ Annex V default values apply only without land-use change emissions (el ≤ 0). 
 
 - Directive (EU) 2018/2001 (RED II) as amended by Directive (EU) 2023/2413 (RED III), consolidated text CELEX 02018L2001-20240716 (16.07.2024):
   https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02018L2001-20240716
+- Commission Delegated Regulation (EU) 2023/1185 (GHG methodology for RFNBO and recycled carbon fuels): https://eur-lex.europa.eu/eli/reg_del/2023/1185/oj
 - Annex V Part A (default savings), Part C (methodology), Part D (disaggregated default values); Article 29(10) (thresholds).
 
 ## Disclaimer

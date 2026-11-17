@@ -1,21 +1,28 @@
 import {
   CREDIT_TERMS,
+  EFUEL_MIN_SAVINGS_PERCENT,
+  EFUEL_TERMS,
   EMISSION_TERMS,
   FOSSIL_COMPARATOR,
   MAX_BLEND_COMPONENTS,
+  ZERO_EFUEL_INPUTS,
   ZERO_INPUTS,
   blend,
+  efuelEmissions,
   isIsoDate,
+  meetsEfuelMinimum,
   meetsThreshold,
   round,
   savingsPercent,
   thresholdForStartDate,
   totalEmissions,
+  type EfuelInputs,
+  type EfuelKey,
   type PathwayInputs,
   type TermKey,
 } from './calc';
 import { PRESETS } from './presets';
-import { STATIC_DE, detectLang, messages, type Lang } from './i18n';
+import { STATIC_DE, detectLang, messages, type HelpKey, type Lang } from './i18n';
 import { TERMS, type TermInfo } from './terms';
 
 const UNIT = 'gCO₂eq/MJ';
@@ -55,6 +62,21 @@ function fmtInput(value: number): string {
 function fmtDate(iso: string): string {
   const [y, m, d] = iso.split('-');
   return `${d}.${m}.${y}`;
+}
+
+/**
+ * Small "?" button with a one-sentence explanation. The sentence is shown in the
+ * floating tooltip on hover, focus and tap, and is read by screen readers through
+ * aria-describedby. Returns the id of the description as well, so an input can
+ * point to it too.
+ */
+let helpSeq = 0;
+function help(label: string, text: string): { html: string; id: string } {
+  const id = `help-${++helpSeq}`;
+  return {
+    id,
+    html: `<button type="button" class="help-btn" aria-describedby="${id}" data-tip="${esc(text)}"><span aria-hidden="true">?</span><span class="visually-hidden">${esc(T.helpName(label))}</span></button><span id="${id}" class="visually-hidden">${esc(text)}</span>`,
+  };
 }
 
 function sym(term: TermInfo): string {
@@ -115,9 +137,12 @@ interface ChartSpec {
   total: number;
   /** Minimum saving in percent; draws the threshold line when set. */
   thresholdPercent?: number;
+  /** Unit shown in the chart; defaults to gCO₂eq/MJ. */
+  unit?: string;
 }
 
 function renderChart(spec: ChartSpec): string {
+  const unit = spec.unit ?? UNIT;
   const added = spec.segments.filter((sg) => sg.value > 0);
   const subtracted = spec.segments.filter((sg) => sg.value < 0);
   const gross = added.reduce((sum, sg) => sum + sg.value, 0);
@@ -127,7 +152,7 @@ function renderChart(spec: ChartSpec): string {
   const css = (v: number) => `${v.toFixed(3)}%`;
 
   const seg = (sg: Segment, from: number, to: number, cls: string) => {
-    const tip = `${sg.name}: ${fmt(sg.value, 2)} ${UNIT}`;
+    const tip = `${sg.name}: ${fmt(sg.value, 2)} ${unit}`;
     return `<span class="seg ${cls}" style="left:${css(x(from))};width:${css(x(to) - x(from))}" tabindex="0" role="img" aria-label="${esc(tip)}" data-tip="${esc(tip)}"></span>`;
   };
 
@@ -148,7 +173,7 @@ function renderChart(spec: ChartSpec): string {
     return seg(sg, back, to, 'minus');
   });
 
-  const totalTip = `${spec.totalLabel}: ${fmt(spec.total, 2)} ${UNIT}`;
+  const totalTip = `${spec.totalLabel}: ${fmt(spec.total, 2)} ${unit}`;
   const totalSeg = `<span class="seg total" style="left:${css(x(Math.min(0, spec.total)))};width:${css(Math.abs(x(spec.total) - x(0)))}" tabindex="0" role="img" aria-label="${esc(totalTip)}" data-tip="${esc(totalTip)}"></span>`;
 
   const limit =
@@ -187,15 +212,15 @@ function renderChart(spec: ChartSpec): string {
         ${row(esc(spec.totalLabel), totalSeg, 'net')}
         <div class="plot-lines" aria-hidden="true"><span class="plot-label"></span><span class="track">${lines}</span></div>
       </div>
-      <div class="plot-row axis" aria-hidden="true"><span class="plot-label">${UNIT}</span><span class="track">
+      <div class="plot-row axis" aria-hidden="true"><span class="plot-label">${unit}</span><span class="track">
         <span class="tick" style="left:${css(x(lo))}">${fmtInput(lo)}</span>
         <span class="tick" style="left:${css(x(mid))}">${fmtInput(mid)}</span>
         <span class="tick" style="left:${css(x(hi / 1.04))}">${fmtInput(hi / 1.04)}</span>
       </span></div>
     </div>
     <ul class="chart-legend">${legend}</ul>
-    <p class="hint">${T.chartHintSolid}${
-      limit === undefined ? '' : ` ${T.chartHintDashed(fmt(limit, 2), spec.thresholdPercent!)}`
+    <p class="hint">${T.chartHintSolid(unit)}${
+      limit === undefined ? '' : ` ${T.chartHintDashed(fmt(limit, 2), spec.thresholdPercent!, unit)}`
     } ${T.chartHintTip}</p>
   </figure>`;
 }
@@ -244,7 +269,15 @@ function initChartTooltips(): void {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') hide();
   });
-  window.addEventListener('scroll', hide, { passive: true });
+  // Focusing a control can scroll it into view: keep its tooltip and move it along.
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (current && current === document.activeElement) show(current);
+      else hide();
+    },
+    { passive: true },
+  );
   window.addEventListener('resize', hide);
   // Results re-render on every input; drop a tooltip whose bar is gone.
   new MutationObserver(() => {
@@ -303,14 +336,24 @@ function shareUrl(): string {
   return `${location.origin}${location.pathname}?${buildQuery()}`;
 }
 
-function currentMode(): 'single' | 'blend' {
-  return document.querySelector<HTMLInputElement>('input[name="mode"]:checked')?.value === 'blend' ? 'blend' : 'single';
+type Mode = 'single' | 'blend' | 'efuel';
+
+function currentMode(): Mode {
+  const value = document.querySelector<HTMLInputElement>('input[name="mode"]:checked')?.value;
+  return value === 'blend' || value === 'efuel' ? value : 'single';
 }
 
 function buildQuery(): string {
   const q = new URLSearchParams();
   q.set('lang', lang);
   q.set('mode', currentMode());
+  if (currentMode() === 'efuel') {
+    for (const key of EFUEL_TERMS) {
+      const v = efuelInput(key).value.trim();
+      if (v !== '' && Number(v) !== 0) q.set(`f_${key}`, v);
+    }
+    return q.toString();
+  }
   if (currentMode() === 'blend') {
     for (const row of blendRows) {
       q.append('c', [row.name.replace(/~/g, ' '), row.fossil ? 'f' : 'b', row.energy, row.fossil ? '' : row.e].join('~'));
@@ -363,13 +406,18 @@ function applyQuery(): void {
   }
   if (rows.length) blendRows = rows;
 
-  if (q.get('mode') === 'blend') {
-    const radio = $<HTMLInputElement>('input[name="mode"][value="blend"]');
-    radio.checked = true;
+  for (const key of EFUEL_TERMS) {
+    const raw = q.get(`f_${key}`);
+    if (raw !== null && raw.trim() !== '' && Number.isFinite(Number(raw))) efuelInput(key).value = String(Number(raw));
+  }
+
+  const mode = q.get('mode');
+  if (mode === 'blend' || mode === 'efuel') {
+    $<HTMLInputElement>(`input[name="mode"][value="${mode}"]`).checked = true;
   }
 }
 
-const ACTIONS = (mode: 'single' | 'blend') => `<div class="row-actions">
+const ACTIONS = (mode: Mode) => `<div class="row-actions">
     <button type="button" class="btn primary" data-copy="${mode}">${T.copyResult}</button>
     <button type="button" class="btn" data-copy-link>${T.copyLink}</button>
     <button type="button" class="btn" data-print>${T.print}</button>
@@ -395,19 +443,13 @@ function termField(term: TermInfo): string {
   const text = T.terms[term.key];
   const describedBy: string[] = [];
   if (text.hint) describedBy.push(`hint-${term.key}`);
-  if (term.key === 'esca') describedBy.push('tip-esca');
   describedBy.push(`err-${term.key}`);
-  const info =
-    term.key === 'esca'
-      ? `<button type="button" class="info-btn" id="esca-info" aria-expanded="false" aria-controls="tip-esca" aria-label="${esc(T.escaInfoLabel)}">i</button>`
-      : '';
-  const tip =
-    term.key === 'esca' ? `<p class="tooltip" id="tip-esca" role="tooltip" hidden>${esc(T.escaTooltip)}</p>` : '';
+  const h = help(text.label, T.helpTerms[term.key]);
+  describedBy.unshift(h.id);
   return `<div class="term-field">
-    <div class="label-row"><label for="${id}"><span class="sym">${sym(term)}</span> ${esc(text.label)}</label>${info}</div>
+    <div class="label-row"><label for="${id}"><span class="sym">${sym(term)}</span> ${esc(text.label)}</label>${h.html}</div>
     <input type="number" id="${id}" name="${term.key}" inputmode="decimal" step="0.1" ${term.allowNegative ? '' : 'min="0"'} value="0" aria-describedby="${describedBy.join(' ')}" />
     ${text.hint ? `<p class="hint" id="hint-${term.key}">${esc(text.hint)}</p>` : ''}
-    ${tip}
     <p class="error" id="err-${term.key}" hidden></p>
   </div>`;
 }
@@ -471,7 +513,7 @@ function renderSingle(): void {
     const date = fmtDate(startDate.value);
     badge = `<div class="verdict ${pass ? 'pass' : 'fail'}">
       <span class="badge">${pass ? T.pass : T.fail}</span>
-      <p><strong>${gapText}.</strong> ${T.verdict(pass, threshold.percent, threshold.point, date)}</p>
+      <p><strong>${gapText}.</strong> ${T.verdict(pass, threshold.percent, threshold.point, date)} ${help(T.chartMinimum(threshold.percent), T.help.threshold).html}</p>
     </div>`;
     thresholdLine = T.thresholdCopy(threshold.point, date, threshold.percent, pass ? T.passCopy : T.failCopy, gapText);
   }
@@ -481,7 +523,7 @@ function renderSingle(): void {
     const v = inputs[term.key];
     const contribution = credit ? -v : v;
     return `<tr>
-      <th scope="row"><span class="sym">${sym(term)}</span> <span class="term-name">${esc(T.terms[term.key].label)}</span></th>
+      <th scope="row"><span class="sym">${sym(term)}</span> <span class="term-name">${esc(T.terms[term.key].label)}</span> ${help(T.terms[term.key].label, T.helpTerms[term.key]).html}</th>
       <td class="num">${fmt(contribution + 0, 2)}</td>
     </tr>`;
   }).join('');
@@ -500,8 +542,8 @@ function renderSingle(): void {
   singleResults.innerHTML = `
     <h3>${T.result}</h3>
     <div class="headline">
-      <div class="big"><span class="big-label">${T.ghgSavings}</span><span class="big-num">${animNum('s-saving', saving, 1, true)}</span></div>
-      <div class="big"><span class="big-label">${T.totalEmissions}</span><span class="big-num">${animNum('s-e', e, 2)} <span class="unit">${UNIT}</span></span></div>
+      <div class="big"><span class="big-label">${T.ghgSavings} ${help(T.ghgSavings, T.help.savings).html}</span><span class="big-num">${animNum('s-saving', saving, 1, true)}</span></div>
+      <div class="big"><span class="big-label">${T.totalEmissions} ${help(T.totalEmissions, T.help.totalE).html}</span><span class="big-num">${animNum('s-e', e, 2)} <span class="unit">${UNIT}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}</p>
     ${savingsNote(e)}
@@ -512,14 +554,14 @@ function renderSingle(): void {
         <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${UNIT}</th></tr></thead>
         <tbody>${rows}</tbody>
         <tfoot>
-          <tr><th scope="row">${T.eTotal}</th><td class="num">${fmt(e, 2)}</td></tr>
-          <tr><th scope="row">${T.comparatorRow}</th><td class="num">${fmt(FOSSIL_COMPARATOR, 2)}</td></tr>
+          <tr><th scope="row">${T.eTotal} ${help(T.eTotal, T.help.totalE).html}</th><td class="num">${fmt(e, 2)}</td></tr>
+          <tr><th scope="row">${T.comparatorRow} ${help(T.chartComparator, T.help.comparator).html}</th><td class="num">${fmt(FOSSIL_COMPARATOR, 2)}</td></tr>
           <tr><th scope="row">${T.ghgSavings}</th><td class="num">${pct(saving)}</td></tr>
         </tfoot>
       </table>
     </div>
     ${renderChart({
-      caption: T.chartTermsCaption,
+      caption: T.chartTermsCaption(UNIT),
       addedLabel: T.chartEmissions,
       totalLabel: T.eTotal,
       segments,
@@ -605,36 +647,6 @@ function initSingle(): void {
     announce(T.inputsReset);
   });
 
-  // esca tooltip: click or keyboard toggles, hover shows, Escape closes.
-  // Delegated, because the fields are rebuilt when the language changes.
-  let pinned = false;
-  const show = (open: boolean) => {
-    const tip = document.getElementById('tip-esca');
-    const btn = document.getElementById('esca-info');
-    if (!tip || !btn) return;
-    tip.hidden = !open;
-    btn.setAttribute('aria-expanded', String(open));
-  };
-  const isInfo = (e: Event) => e.target instanceof Element && e.target.closest('#esca-info') !== null;
-  singleForm.addEventListener('click', (e) => {
-    if (!isInfo(e)) return;
-    pinned = !pinned;
-    show(pinned);
-  });
-  singleForm.addEventListener('mouseover', (e) => isInfo(e) && show(true));
-  singleForm.addEventListener('mouseout', (e) => isInfo(e) && show(pinned));
-  singleForm.addEventListener('focusin', (e) => isInfo(e) && show(true));
-  singleForm.addEventListener('focusout', (e) => isInfo(e) && show(pinned));
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      pinned = false;
-      show(false);
-    }
-  });
-  document.addEventListener('languagechange-app', () => {
-    pinned = false;
-  });
-
   // Start with a preset so the page shows a real result straight away.
   presetSelect.value = PRESETS[0].id;
   applyPreset(PRESETS[0].id);
@@ -664,24 +676,28 @@ function renderBlendRows(): void {
   blendRowsEl.innerHTML = blendRows
     .map((row, i) => {
       const n = i + 1;
+      const hName = help(T.name, T.help.blendName);
+      const hEnergy = help(T.energy, T.help.blendEnergy);
+      const hE = help('E', T.help.blendE);
+      const hFossil = help(T.fossilCheck, T.help.blendFossil);
       return `<fieldset class="blend-row" data-index="${i}">
         <legend>${T.component(n)}</legend>
         <div class="blend-grid">
           <div class="field name">
-            <label for="b-name-${i}">${T.name}</label>
-            <input type="text" id="b-name-${i}" data-field="name" maxlength="40" value="${esc(row.name)}" autocomplete="off" />
+            <div class="label-row"><label for="b-name-${i}">${T.name}</label>${hName.html}</div>
+            <input type="text" id="b-name-${i}" data-field="name" aria-describedby="${hName.id}" maxlength="40" value="${esc(row.name)}" autocomplete="off" />
           </div>
           <div class="field">
-            <label for="b-energy-${i}">${T.energy}</label>
-            <input type="number" id="b-energy-${i}" data-field="energy" inputmode="decimal" min="0" step="any" value="${esc(row.energy)}" aria-describedby="b-err-${i}" />
+            <div class="label-row"><label for="b-energy-${i}">${T.energy}</label>${hEnergy.html}</div>
+            <input type="number" id="b-energy-${i}" data-field="energy" inputmode="decimal" min="0" step="any" value="${esc(row.energy)}" aria-describedby="${hEnergy.id} b-err-${i}" />
           </div>
           <div class="field">
-            <label for="b-e-${i}">E (${UNIT})</label>
-            <input type="number" id="b-e-${i}" data-field="e" inputmode="decimal" step="0.1" value="${row.fossil ? '94' : esc(row.e)}" ${row.fossil ? 'disabled' : ''} aria-describedby="b-err-${i}" />
+            <div class="label-row"><label for="b-e-${i}">E (${UNIT})</label>${hE.html}</div>
+            <input type="number" id="b-e-${i}" data-field="e" inputmode="decimal" step="0.1" value="${row.fossil ? '94' : esc(row.e)}" ${row.fossil ? 'disabled' : ''} aria-describedby="${hE.id} b-err-${i}" />
           </div>
         </div>
         <div class="blend-foot">
-          <label class="check"><input type="checkbox" data-field="fossil" ${row.fossil ? 'checked' : ''} /> ${T.fossilCheck}</label>
+          <label class="check"><input type="checkbox" data-field="fossil" aria-describedby="${hFossil.id}" ${row.fossil ? 'checked' : ''} /> ${T.fossilCheck}</label>${hFossil.html}
           <button type="button" class="btn ghost small" data-remove="${i}" ${blendRows.length <= 1 ? 'disabled' : ''} aria-label="${T.removeLabel(n)}">${T.remove}</button>
         </div>
         <p class="error" id="b-err-${i}" hidden></p>
@@ -732,6 +748,7 @@ function renderBlend(): void {
         <td class="num">${fmtInput(c.energyMJ)}</td>
         <td class="num">${fmt(share)}</td>
         <td class="num">${fmt(c.e, 2)}</td>
+        <td class="num">${fmt(savingsPercent(c.e))}</td>
       </tr>`;
     })
     .join('');
@@ -748,8 +765,8 @@ function renderBlend(): void {
   blendResults.innerHTML = `
     <h3>${T.blendResult}</h3>
     <div class="headline">
-      <div class="big"><span class="big-label">${T.blendSavings}</span><span class="big-num">${animNum('b-saving', result.savingsPercent, 1, true)}</span></div>
-      <div class="big"><span class="big-label">${T.blendIntensity}</span><span class="big-num">${animNum('b-e', result.intensity, 2)} <span class="unit">${UNIT}</span></span></div>
+      <div class="big"><span class="big-label">${T.blendSavings} ${help(T.blendSavings, T.help.blendSavings).html}</span><span class="big-num">${animNum('b-saving', result.savingsPercent, 1, true)}</span></div>
+      <div class="big"><span class="big-label">${T.blendIntensity} ${help(T.blendIntensity, T.help.blendIntensity).html}</span><span class="big-num">${animNum('b-e', result.intensity, 2)} <span class="unit">${UNIT}</span></span></div>
     </div>
     <p class="calc-line">(94 − ${fmt(result.intensity, 2)}) / 94 = ${pct(result.savingsPercent)}</p>
     <p class="compare">${T.blendCompare(pct(result.bioSharePercent), pct(result.savingsPercent))}</p>
@@ -757,9 +774,9 @@ function renderBlend(): void {
     <div class="table-wrap">
       <table class="breakdown">
         <caption>${T.components}</caption>
-        <thead><tr><th scope="col">${T.componentCol}</th><th scope="col" class="num">${T.energyCol}<br />MJ</th><th scope="col" class="num">${T.shareCol}<br />%</th><th scope="col" class="num">E<br />${UNIT}</th></tr></thead>
+        <thead><tr><th scope="col">${T.componentCol}</th><th scope="col" class="num">${T.energyCol}<br />MJ</th><th scope="col" class="num">${T.shareCol}<br />%</th><th scope="col" class="num">E<br />${UNIT}</th><th scope="col" class="num">${T.savingCol}<br />%</th></tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr><th scope="row">${T.blend}</th><td class="num">${fmtInput(result.totalEnergyMJ)}</td><td class="num">${fmt(100)}</td><td class="num">${fmt(result.intensity, 2)}</td></tr></tfoot>
+        <tfoot><tr><th scope="row">${T.blend}</th><td class="num">${fmtInput(result.totalEnergyMJ)}</td><td class="num">${fmt(100)}</td><td class="num">${fmt(result.intensity, 2)}</td><td class="num">${fmt(result.savingsPercent)}</td></tr></tfoot>
       </table>
     </div>
     ${renderChart({
@@ -836,14 +853,162 @@ function initBlend(): void {
   $('#blend-form').addEventListener('submit', (e) => e.preventDefault());
 }
 
+/* ---------- E-fuel: RFNBO and recycled carbon fuels ---------- */
+
+const EFUEL_FIELDS: readonly { key: EfuelKey; sub: string; allowNegative?: boolean }[] = [
+  { key: 'ei', sub: 'i', allowNegative: true },
+  { key: 'ep', sub: 'p' },
+  { key: 'etd', sub: 'td' },
+  { key: 'eu', sub: 'u' },
+  { key: 'eccs', sub: 'ccs' },
+];
+
+const efuelForm = $<HTMLFormElement>('#efuel-form');
+const efuelResults = $('#efuel-results');
+let lastEfuelCopy = '';
+
+function efuelInput(key: EfuelKey): HTMLInputElement {
+  return $<HTMLInputElement>(`#fin-${key}`);
+}
+
+/** (Re)builds the language-dependent fields, keeping the values. */
+function buildEfuelForm(): void {
+  const values = new Map<EfuelKey, string>();
+  for (const f of EFUEL_FIELDS) {
+    const input = document.querySelector<HTMLInputElement>(`#fin-${f.key}`);
+    if (input) values.set(f.key, input.value);
+  }
+  $('#efuel-fields').innerHTML = EFUEL_FIELDS.map((f) => {
+    const text = T.efuelTerms[f.key];
+    const h = help(text.label, T.helpEfuelTerms[f.key]);
+    const describedBy = [h.id, text.hint ? `fhint-${f.key}` : '', `ferr-${f.key}`].filter(Boolean).join(' ');
+    return `<div class="term-field">
+      <div class="label-row"><label for="fin-${f.key}"><span class="sym">e<sub>${f.sub}</sub></span> ${esc(text.label)}</label>${h.html}</div>
+      <input type="number" id="fin-${f.key}" name="${f.key}" inputmode="decimal" step="0.1" ${f.allowNegative ? '' : 'min="0"'} value="0" aria-describedby="${describedBy}" />
+      ${text.hint ? `<p class="hint" id="fhint-${f.key}">${esc(text.hint)}</p>` : ''}
+      <p class="error" id="ferr-${f.key}" hidden></p>
+    </div>`;
+  }).join('');
+  for (const [key, value] of values) efuelInput(key).value = value;
+}
+
+function readEfuel(): { inputs: EfuelInputs; valid: boolean } {
+  const inputs: EfuelInputs = { ...ZERO_EFUEL_INPUTS };
+  let valid = true;
+  for (const f of EFUEL_FIELDS) {
+    const input = efuelInput(f.key);
+    const err = $(`#ferr-${f.key}`);
+    const raw = input.value.trim();
+    const value = raw === '' ? (input.validity.badInput ? NaN : 0) : Number(raw);
+    let message = '';
+    if (!Number.isFinite(value)) message = T.errNumber;
+    else if (value < 0 && !f.allowNegative) message = T.errNonNegative;
+    err.textContent = message;
+    err.hidden = message === '';
+    input.setAttribute('aria-invalid', message ? 'true' : 'false');
+    if (message) valid = false;
+    else inputs[f.key] = value;
+  }
+  return { inputs, valid };
+}
+
+function renderEfuel(): void {
+  scheduleUrlUpdate();
+  const { inputs, valid } = readEfuel();
+  if (!valid) {
+    lastEfuelCopy = '';
+    efuelResults.innerHTML = `<h3>${T.efuelResult}</h3><p class="flag warn">${T.fixInputs}</p>`;
+    return;
+  }
+
+  const e = efuelEmissions(inputs);
+  const saving = savingsPercent(e);
+  const pass = meetsEfuelMinimum(e);
+  const gap = round(saving, 1) - EFUEL_MIN_SAVINGS_PERCENT;
+  const gapText = round(gap, 1) === 0 ? T.gapExact : T.gap(fmt(Math.abs(gap)), pass);
+
+  const contribution = (key: EfuelKey) => (key === 'eccs' ? -inputs[key] : inputs[key]) + 0;
+  const rows = EFUEL_FIELDS.map(
+    (f) => `<tr>
+      <th scope="row"><span class="sym">e<sub>${f.sub}</sub></span> <span class="term-name">${esc(T.efuelTerms[f.key].label)}</span> ${help(T.efuelTerms[f.key].label, T.helpEfuelTerms[f.key]).html}</th>
+      <td class="num">${fmt(contribution(f.key), 2)}</td>
+    </tr>`,
+  ).join('');
+  const segments: Segment[] = EFUEL_FIELDS.map((f) => ({
+    labelHtml: `e<sub>${f.sub}</sub>`,
+    name: T.tipTerm(`e${f.sub}`, T.efuelTerms[f.key].label),
+    value: contribution(f.key),
+  }));
+
+  efuelResults.innerHTML = `
+    <h3>${T.efuelResult}</h3>
+    <div class="headline">
+      <div class="big"><span class="big-label">${T.ghgSavings} ${help(T.ghgSavings, T.help.savings).html}</span><span class="big-num">${animNum('f-saving', saving, 1, true)}</span></div>
+      <div class="big"><span class="big-label">${T.totalEmissions} ${help(T.totalEmissions, T.help.totalE).html}</span><span class="big-num">${animNum('f-e', e, 2)} <span class="unit">${T.efuelUnit}</span></span></div>
+    </div>
+    <p class="calc-line">(94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}</p>
+    ${savingsNote(e)}
+    <div class="verdict ${pass ? 'pass' : 'fail'}">
+      <span class="badge">${pass ? T.pass : T.fail}</span>
+      <p><strong>${gapText}.</strong> ${T.efuelVerdict(pass)} ${help(T.chartMinimum(EFUEL_MIN_SAVINGS_PERCENT), T.help.efuelThreshold).html}</p>
+    </div>
+    <div class="table-wrap">
+      <table class="breakdown">
+        <caption>${T.breakdown}</caption>
+        <thead><tr><th scope="col">${T.term}</th><th scope="col" class="num">${T.efuelUnit}</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr><th scope="row">${T.eTotal} ${help(T.eTotal, T.help.totalE).html}</th><td class="num">${fmt(e, 2)}</td></tr>
+          <tr><th scope="row">${T.efuelComparatorRow} ${help(T.chartComparator, T.help.comparator).html}</th><td class="num">${fmt(FOSSIL_COMPARATOR, 2)}</td></tr>
+          <tr><th scope="row">${T.ghgSavings}</th><td class="num">${pct(saving)}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="hint">${T.efuelBreakdownNote}</p>
+    ${renderChart({
+      caption: T.chartTermsCaption(T.efuelUnit),
+      unit: T.efuelUnit,
+      addedLabel: T.chartEmissions,
+      totalLabel: T.eTotal,
+      segments,
+      total: e,
+      thresholdPercent: EFUEL_MIN_SAVINGS_PERCENT,
+    })}
+    ${ACTIONS('efuel')}
+  `;
+  runNumberTransitions(efuelResults);
+
+  lastEfuelCopy = [
+    `${T.copyTitleEfuel}, ${T.efuelLabel}`,
+    `E = ${fmt(e, 2)} ${T.efuelUnit} (ei ${fmtInput(inputs.ei)} + ep ${fmtInput(inputs.ep)} + etd ${fmtInput(inputs.etd)} + eu ${fmtInput(inputs.eu)} − eccs ${fmtInput(inputs.eccs)})`,
+    `${T.ghgSavings} = (94 − ${fmt(e, 2)}) / 94 = ${pct(saving)}`,
+    T.efuelThresholdCopy(pass ? T.passCopy : T.failCopy, gapText),
+    `${T.link}: ${shareUrl()}`,
+    T.disclaimer,
+  ].join('\n');
+}
+
+function initEfuel(): void {
+  buildEfuelForm();
+  efuelForm.addEventListener('input', renderEfuel);
+  efuelForm.addEventListener('submit', (e) => e.preventDefault());
+  $('#reset-efuel').addEventListener('click', () => {
+    for (const f of EFUEL_FIELDS) efuelInput(f.key).value = '0';
+    renderEfuel();
+    announce(T.inputsReset);
+  });
+}
+
 /* ---------- Shared ---------- */
 
 function initModeSwitch(): void {
   const single = $('#panel-single');
   const blendPanel = $('#panel-blend');
+  const efuelPanel = $('#panel-efuel');
   const sync = () => {
     single.hidden = currentMode() !== 'single';
     blendPanel.hidden = currentMode() !== 'blend';
+    efuelPanel.hidden = currentMode() !== 'efuel';
   };
   for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="mode"]')) {
     radio.addEventListener('change', () => {
@@ -869,7 +1034,8 @@ function initCopy(): void {
     }
     const btn = el.closest<HTMLButtonElement>('[data-copy]');
     if (!btn) return;
-    const text = btn.dataset.copy === 'blend' ? lastBlendCopy : lastSingleCopy;
+    const text =
+      btn.dataset.copy === 'blend' ? lastBlendCopy : btn.dataset.copy === 'efuel' ? lastEfuelCopy : lastSingleCopy;
     if (!text) return;
     const ok = await copyText(text);
     announce(ok ? T.resultCopied : T.resultFailed);
@@ -883,6 +1049,10 @@ function initCopy(): void {
 }
 
 function initExplainer(): void {
+  $('#efuel-term-list').innerHTML = EFUEL_FIELDS.map(
+    (f) =>
+      `<div class="term"><dt><span class="sym">e<sub>${f.sub}</sub></span> ${esc(T.efuelTerms[f.key].label)}</dt><dd>${esc(T.efuelTerms[f.key].explain)}</dd></div>`,
+  ).join('');
   $('#term-list').innerHTML = TERMS.map(
     (term) =>
       `<div class="term"><dt><span class="sym">${sym(term)}</span> ${esc(T.terms[term.key].label)}</dt><dd>${esc(T.terms[term.key].explain)}</dd></div>`,
@@ -892,6 +1062,21 @@ function initExplainer(): void {
 /* ---------- Language ---------- */
 
 const staticEn = new Map<string, string>();
+
+/** Fills the "?" placeholders next to labels that live in index.html. */
+function renderStaticHelp(): void {
+  for (const slot of document.querySelectorAll<HTMLElement>('[data-help]')) {
+    const input = document.getElementById(slot.dataset.helpFor ?? '');
+    const label = input ? document.querySelector(`label[for="${input.id}"]`)?.textContent?.trim() : '';
+    const old = slot.querySelector('[id]')?.id;
+    const h = help(label || '', T.help[slot.dataset.help as HelpKey]);
+    slot.innerHTML = h.html;
+    if (input) {
+      const ids = (input.getAttribute('aria-describedby') ?? '').split(' ').filter((id) => id && id !== old);
+      input.setAttribute('aria-describedby', [h.id, ...ids].join(' '));
+    }
+  }
+}
 
 function applyStaticText(): void {
   for (const el of document.querySelectorAll<HTMLElement>('[data-i18n]')) {
@@ -906,6 +1091,7 @@ function applyStaticText(): void {
   for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-lang]')) {
     btn.setAttribute('aria-pressed', String(btn.dataset.lang === lang));
   }
+  renderStaticHelp();
 }
 
 function setLang(next: Lang): void {
@@ -919,12 +1105,13 @@ function setLang(next: Lang): void {
     const i = oldDefaults.indexOf(row.name);
     if (i >= 0) row.name = newDefaults[i];
   }
-  document.dispatchEvent(new Event('languagechange-app'));
   applyStaticText();
   buildSingleForm();
+  buildEfuelForm();
   renderBlendRows();
   renderSingle();
   renderBlend();
+  renderEfuel();
   initExplainer();
 }
 
@@ -938,11 +1125,13 @@ applyStaticText();
 initLangSwitch();
 initSingle();
 initBlend();
+initEfuel();
 applyQuery();
 initModeSwitch();
 renderBlendRows();
 renderSingle();
 renderBlend();
+renderEfuel();
 initCopy();
 initChartTooltips();
 initExplainer();

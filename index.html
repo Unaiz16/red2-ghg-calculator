@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RED II GHG Savings Calculator (as amended by RED III)</title>
+    <title>GHG Savings Calculator for Renewable Fuels (EU RED)</title>
     <meta
       name="description"
-      content="Free educational calculator for the greenhouse gas savings of a biofuel under RED II as amended by RED III (Directive (EU) 2018/2001, amended by Directive (EU) 2023/2413)."
+      content="GHG savings calculator for renewable transport fuels – biofuels, SAF and e-fuels (EU RED). Free educational tool using the method of RED II as amended by RED III."
     />
     <meta name="theme-color" content="#1b6b47" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -22,11 +22,11 @@
           <button type="button" data-lang="de" lang="de" aria-pressed="false">DE<span class="visually-hidden"> Deutsch</span></button>
         </div>
         <p class="eyebrow" data-i18n="eyebrow">RED II as amended by RED III</p>
-        <h1 data-i18n="h1">Biofuel GHG Savings Calculator</h1>
+        <h1 data-i18n="h1">Renewable Fuels GHG Savings Calculator</h1>
         <p class="subtitle" data-i18n="subtitle">
-          Calculates the greenhouse gas savings of a biofuel under RED II as amended by RED III
-          (Directive (EU) 2018/2001, amended by Directive (EU) 2023/2413) and explains the result in
-          plain language.
+          GHG savings calculator for renewable transport fuels – biofuels, SAF and e-fuels (EU RED).
+          Method of RED II as amended by RED III (Directive (EU) 2018/2001, amended by Directive
+          (EU) 2023/2413), with the result explained in plain language.
         </p>
       </div>
     </header>
@@ -44,8 +44,9 @@
 
         <fieldset class="mode-switch">
           <legend class="visually-hidden" data-i18n="mode-legend">Calculation mode</legend>
-          <label><input type="radio" name="mode" value="single" checked /><span data-i18n="mode-single">Single pathway</span></label>
-          <label><input type="radio" name="mode" value="blend" /><span data-i18n="mode-blend">Blend</span></label>
+          <label><input type="radio" name="mode" value="single" checked /><span data-i18n="mode-single">Biofuel</span></label>
+          <label><input type="radio" name="mode" value="blend" /><span data-i18n="mode-blend">Blend / compare</span></label>
+          <label><input type="radio" name="mode" value="efuel" /><span data-i18n="mode-efuel">E-fuel</span></label>
         </fieldset>
 
         <!-- Single pathway -->
@@ -54,7 +55,7 @@
             <h3 data-i18n="inputs">Inputs</h3>
 
             <div class="field">
-              <label for="preset" data-i18n="preset-label">Preset (Annex V default values)</label>
+              <div class="label-row"><label for="preset" data-i18n="preset-label">Preset (Annex V default values)</label><span data-help="preset" data-help-for="preset"></span></div>
               <select id="preset"></select>
               <p class="hint" id="preset-note"></p>
               <p class="hint source" data-i18n="preset-source">
@@ -79,7 +80,7 @@
             </fieldset>
 
             <div class="field">
-              <label for="start-date" data-i18n="date-label">Date the installation started operation</label>
+              <div class="label-row"><label for="start-date" data-i18n="date-label">Date the installation started operation</label><span data-help="date" data-help-for="start-date"></span></div>
               <input type="date" id="start-date" value="2021-01-01" aria-describedby="date-hint" />
               <p class="hint" id="date-hint" data-i18n="date-hint">
                 Sets the minimum saving under Art. 29(10)(a)–(c): 50% (in operation on or before
@@ -96,10 +97,12 @@
         <!-- Blend -->
         <div id="panel-blend" class="panel-grid" hidden>
           <form class="card" id="blend-form" novalidate>
-            <h3 data-i18n="blend-heading">Blend components</h3>
+            <h3 data-i18n="blend-heading">Blend / compare supplier offers</h3>
             <p class="hint" data-i18n="blend-hint">
               Up to 5 components. Enter the energy amount (MJ) and the emission intensity E
-              (gCO<sub>2</sub>eq/MJ) of each. Fossil components count as 94.
+              (gCO<sub>2</sub>eq/MJ) of each. Fossil components count as 94. To compare supplier
+              offers, enter each offer as a component: the table shows the saving of each offer and
+              of the mix.
             </p>
             <div id="blend-rows"></div>
             <div class="row-actions">
@@ -109,6 +112,32 @@
           </form>
 
           <div class="card results" id="blend-results"></div>
+        </div>
+
+        <!-- E-fuel: RFNBO and recycled carbon fuels -->
+        <div id="panel-efuel" class="panel-grid" hidden>
+          <form class="card" id="efuel-form" novalidate>
+            <h3 data-i18n="efuel-heading">E-fuel inputs (RFNBO / recycled carbon fuels)</h3>
+            <p class="hint" data-i18n="efuel-hint">
+              Method of Commission Delegated Regulation (EU) 2023/1185. There are no default values
+              for e-fuels: enter your own values in gCO<sub>2</sub>eq/MJ of fuel.
+            </p>
+            <fieldset class="terms">
+              <legend data-i18n="efuel-legend">Terms <span class="legend-note">gCO<sub>2</sub>eq/MJ</span></legend>
+              <div id="efuel-fields"></div>
+            </fieldset>
+            <p class="hint source" data-i18n="efuel-source">
+              Source: Commission Delegated Regulation (EU) 2023/1185,
+              <a href="https://eur-lex.europa.eu/eli/reg_del/2023/1185/oj" target="_blank" rel="noopener">EUR-Lex</a>.
+              Formula: Annex Part A point 1. Fossil fuel comparator 94 gCO<sub>2</sub>eq/MJ and savings =
+              (E<sub>F</sub> − E) / E<sub>F</sub>: Annex Part A point 2. Minimum saving 70%: RFNBO under RED
+              Art. 29a(1) (inserted by RED III; previously Art. 25(2)), recycled carbon fuels under RED
+              Art. 29a(2) and Art. 2 of the Regulation.
+            </p>
+            <button type="button" class="btn ghost" id="reset-efuel" data-i18n="reset-single">Reset inputs</button>
+          </form>
+
+          <div class="card results" id="efuel-results"></div>
         </div>
 
         <p class="status" id="live-status" role="status" aria-live="polite"></p>
@@ -148,6 +177,77 @@
           <dl id="term-list" class="term-list"></dl>
         </div>
 
+        <div class="card prose" data-i18n="efuel-card">
+          <h3>E-fuels: why grid electricity can fail the 70% minimum</h3>
+          <p>
+            E-fuels here means renewable liquid and gaseous transport fuels of non-biological origin
+            (RFNBO), such as hydrogen from electrolysis and fuels made from it, and recycled carbon
+            fuels. Both use the same formula from Commission Delegated Regulation (EU) 2023/1185
+            (Annex Part A point 1) and the same fossil fuel comparator of 94 gCO<sub>2</sub>eq/MJ
+            (Part A point 2). The minimum saving is 70%: for RFNBO under RED Art. 29a(1) (inserted by
+            RED III; previously Art. 25(2)), for recycled carbon fuels under RED Art. 29a(2) and
+            Art. 2 of the Regulation. That leaves at most 28.2 gCO<sub>2</sub>eq/MJ for the whole chain.
+          </p>
+          <p>
+            Almost all of the energy in an e-fuel comes from electricity, and conversion losses mean
+            that more than one megajoule of electricity is needed per megajoule of fuel. The
+            emissions of the electricity are therefore multiplied, not diluted.
+          </p>
+          <p class="example">
+            <strong>Illustrative example, not a legal value:</strong> if a process needs 1.5 MJ of
+            electricity per MJ of fuel, electricity at 20 gCO<sub>2</sub>eq/MJ already gives
+            30 gCO<sub>2</sub>eq/MJ of fuel, above the limit before processing and distribution are
+            counted.
+          </p>
+          <h4>How electricity is counted (Part A points 5 and 6)</h4>
+          <p>
+            Electricity that is fully renewable under RED Art. 27(6) (formerly Art. 27(3), as cited
+            in the Regulation) counts as zero emissions. Other grid electricity is counted, per
+            calendar year, in one of three ways:
+          </p>
+          <ul>
+            <li>(a) with the average emission intensity of the country or bidding zone (Part C of the Annex);</li>
+            <li>
+              (b) with zero if the full-load hours fall within the hours in which renewables or
+              nuclear set the price, otherwise with 183 gCO<sub>2</sub>eq/MJ;
+            </li>
+            <li>(c) with the value of the marginal unit in the bidding zone, if the transmission system operator publishes it.</li>
+          </ul>
+          <p>The detailed rules for renewable electricity are in Delegated Regulation (EU) 2023/1184.</p>
+          <h4>Where the carbon comes from (Part A point 10)</h4>
+          <p>
+            e<sub>u</sub> holds the total combustion emissions of the fuel in use (point 13). Captured
+            CO<sub>2</sub> that ends up in the fuel is not deducted there. It is credited inside
+            e<sub>i</sub> through e ex-use, and only from these eligible sources (point 10(a)–(e)):
+          </p>
+          <ul>
+            <li>
+              (a) CO<sub>2</sub> from activities listed in Annex I of the ETS Directive that is subject
+              to effective carbon pricing and is incorporated in the fuel before 2036 (before 2041 if
+              it does not come from burning fuels for electricity generation);
+            </li>
+            <li>(b) CO<sub>2</sub> captured from the air;</li>
+            <li>
+              (c) CO<sub>2</sub> from compliant biofuels, bioliquids or biomass fuels for which no
+              credit for carbon capture and use or storage was claimed;
+            </li>
+            <li>(d) CO<sub>2</sub> from compliant RFNBO or recycled carbon fuels;</li>
+            <li>(e) geological CO<sub>2</sub> that was previously released naturally.</li>
+          </ul>
+          <p>
+            Not eligible: CO<sub>2</sub> from a fuel that is burned specifically to produce
+            CO<sub>2</sub>, and CO<sub>2</sub> that has already received a credit elsewhere. The 2036 and
+            2041 dates are subject to review (point 11). The energy used for capture counts as an
+            input.
+          </p>
+          <p class="formula" aria-label="Formula">
+            E = e<sub>i</sub> + e<sub>p</sub> + e<sub>td</sub> + e<sub>u</sub> − e<sub>ccs</sub> &nbsp;(Annex Part A point 1)<br />
+            e<sub>i</sub> = e<sub>i</sub> elastic + e<sub>i</sub> rigid − e ex-use<br />
+            Savings = (E<sub>F</sub> − E) / E<sub>F</sub>, E<sub>F</sub> = 94 &nbsp;(Part A point 2), minimum 70%
+          </p>
+          <dl id="efuel-term-list" class="term-list"></dl>
+        </div>
+
         <div class="card prose" data-i18n="good-card">
           <h3>Good to know</h3>
           <ul>
@@ -155,6 +255,13 @@
               <strong>Default values and land-use change.</strong> The Annex V default values may only
               be used when there are no net emissions from land-use change, that is when
               e<sub>l</sub> is zero or below.
+            </li>
+            <li>
+              <strong>Sustainable aviation fuel (SAF).</strong> Under ReFuelEU Aviation (Regulation
+              (EU) 2023/2405), aviation biofuels must meet RED Art. 29; their savings are calculated
+              under RED Art. 31(1), i.e. the Annex V method used in Biofuel mode, with the
+              Art. 29(10) thresholds. Synthetic aviation fuels (e-SAF) must meet the 70% threshold of
+              RED Art. 29a(1) – use E-fuel mode.
             </li>
             <li>
               <strong>ETBE and TAEE.</strong> The renewable part of ETBE and TAEE takes the value of

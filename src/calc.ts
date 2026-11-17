@@ -135,3 +135,31 @@ export function blend(components: BlendComponent[]): BlendResult | null {
     bioSharePercent: (bioEnergy / totalEnergyMJ) * 100,
   };
 }
+
+/* ---------- E-fuels: RFNBO and recycled carbon fuels ---------- */
+
+/**
+ * Commission Delegated Regulation (EU) 2023/1185, Annex:
+ * E = ei + ep + etd + eu − eccs, in gCO2eq/MJ of fuel.
+ * The fossil fuel comparator is the same 94 gCO2eq/MJ.
+ */
+export const EFUEL_TERMS = ['ei', 'ep', 'etd', 'eu', 'eccs'] as const;
+export type EfuelKey = (typeof EFUEL_TERMS)[number];
+export type EfuelInputs = Record<EfuelKey, number>;
+
+export const ZERO_EFUEL_INPUTS: EfuelInputs = { ei: 0, ep: 0, etd: 0, eu: 0, eccs: 0 };
+
+/** Minimum GHG savings for RFNBO and recycled carbon fuels, in percent. */
+export const EFUEL_MIN_SAVINGS_PERCENT = 70;
+
+/** Highest E that still meets the minimum: 94 × (1 − 0.70) = 28.2 gCO2eq/MJ. */
+export const EFUEL_MAX_EMISSIONS = FOSSIL_COMPARATOR * (1 - EFUEL_MIN_SAVINGS_PERCENT / 100);
+
+export function efuelEmissions(inputs: Partial<EfuelInputs>): number {
+  const i = { ...ZERO_EFUEL_INPUTS, ...inputs };
+  return i.ei + i.ep + i.etd + i.eu - i.eccs;
+}
+
+export function meetsEfuelMinimum(e: number): boolean {
+  return savingsPercent(e) >= EFUEL_MIN_SAVINGS_PERCENT;
+}

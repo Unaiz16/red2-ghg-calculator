@@ -5,7 +5,7 @@ description: Scores how well a job ad fits Unaiz Ahmed Khan's career profile. Us
 
 # Job-fit scorer
 
-Scores one job ad against the career profile in `Career_Agent_Profile_Unaiz.md` (same folder as this file) and says what to do with it.
+Scores one job ad against the career profile in `Career_Agent_Profile_Unaiz.md` and says what to do with it. The profile is a private file kept next to the private copy of this skill; it is not published.
 
 ## Inputs
 

@@ -46,13 +46,80 @@ Handover file so another session can continue. Update after every step.
       expected results: strong fit, partial fit, not-a-fit). Written before the profile
       file existed; expected results rely only on the About facts.
 
+- [x] PR 3 work: e-fuel mode (RFNBO / recycled carbon fuel) per Delegated Regulation
+      (EU) 2023/1185: E = ei + ep + etd + eu − eccs, comparator 94, minimum 70 %
+      (E ≤ 28.2). No default values. EN + DE, explainer on grid electricity, SAF note,
+      new tagline, blend heading "Blend / compare supplier offers" with a saving column
+      per component. `src/calc.ts` (EFUEL_*), `tests/efuel.test.ts`.
+- [x] Removed the instruction to add the career profile to this public repo.
+- [x] Help tooltips: a "?" button next to every input, term, threshold and result
+      label, one plain sentence each in EN and DE (`help`, `helpTerms`,
+      `helpEfuelTerms` in `src/i18n.ts`). Shown on hover, keyboard focus and tap through
+      the shared floating tooltip; each button and its input point to the sentence with
+      `aria-describedby`. The esca "i" button is replaced by its "?" with the same
+      RED III text.
+
+## Verified 17.11.2026 (EUR-Lex)
+
+Checked by the owner against Commission Delegated Regulation (EU) 2023/1185 (original
+OJ text, not amended) and the RED consolidated text 02018L2001-20240716. All points
+below are applied in hints, explainer and "?" help sentences, EN and DE.
+
+1. **Citations.** Formula E = ei + ep + etd + eu − eccs: Annex Part A point 1.
+   Comparator 94 and savings = (EF − E) / EF: Part A point 2. Both shown in the UI.
+2. **ei** = ei elastic + ei rigid − e ex-use (Part A points 1 and 10). Negative ei is
+   allowed; the field accepts it.
+3. **eu and captured carbon.** eu = total combustion emissions of the fuel in use
+   (point 13). Captured CO₂ from eligible sources is credited inside ei via e ex-use
+   (point 10), not by reducing eu. Energy used for capture counts as an input. (The
+   first draft had this the other way round; corrected.)
+4. **Eligible CO₂ sources** (point 10(a)–(e)): (a) ETS Annex I activities under
+   effective carbon pricing, incorporated before 2036 (2041 if not from combusting
+   fuels for electricity); (b) air; (c) compliant biofuels/bioliquids/biomass fuels
+   without CCU/CCS credit; (d) compliant RFNBO/RCF; (e) geological CO₂ previously
+   released naturally. Not eligible: CO₂ from fuel burned specifically to produce CO₂,
+   or already credited elsewhere. The 2036/2041 dates are subject to review (point 11).
+5. **70 % legal basis.** RFNBO: RED Art. 29a(1) (inserted by RED III; previously
+   Art. 25(2)). RCF: RED Art. 29a(2) and Art. 2 of the Regulation.
+6. **Electricity** (Part A points 5–6). Fully renewable under RED Art. 27(6) (formerly
+   27(3), as cited in the Regulation) = zero. Other grid electricity, per calendar
+   year, one of: (a) average intensity of the country or bidding zone (Part C);
+   (b) zero if full-load hours fall within hours when renewables/nuclear set the
+   price, otherwise 183 gCO₂eq/MJ; (c) marginal unit in the bidding zone if published
+   by the TSO. Detailed rules in Delegated Regulation (EU) 2023/1184.
+7. **Definitions.** ep = direct processing emissions, waste treatment, leakages
+   (point 12); etd = storage and distribution of finished fuel, input transport goes
+   in ei (point 16); eu = total combustion emissions in use (point 13); eccs = CO₂
+   permanently stored under Directive 2009/31/EC, storage operation emissions in ep
+   (point 17).
+8. **Same formula** for RFNBO and RCF: confirmed.
+9. **German terms** as in the German text of the Regulation: "flüssige oder gasförmige
+   erneuerbare Kraftstoffe nicht biogenen Ursprungs für den Verkehr";
+   "wiederverwertete kohlenstoffhaltige Kraftstoffe"; ei "Emissionen aus der
+   Versorgung mit Einsatzstoffen" (elastic: "mit elastischem Angebot", rigid: "mit
+   unelastischem Angebot", ex-use: "Emissionen aus der derzeitigen Nutzung oder
+   Bestimmung der Einsatzstoffe"); ep "Emissionen aus der Verarbeitung"; etd
+   "Emissionen aus Transport und Verteilung"; eu "Emissionen aus der Verbrennung des
+   Kraftstoffs bei der Endnutzung"; eccs "Emissionseinsparungen durch CO2-Abscheidung
+   und geologische CO2-Speicherung"; unit "g CO2-Äq./MJ Kraftstoff". Guarded by
+   `tests/efuel.test.ts`.
+10. **SAF wording.** ReFuelEU Aviation (Regulation (EU) 2023/2405): aviation biofuels
+    must meet RED Art. 29; savings calculated under RED Art. 31(1), i.e. the Annex V
+    method (Biofuel mode) with the Art. 29(10) thresholds. Synthetic aviation fuels
+    (e-SAF) must meet the 70 % threshold of RED Art. 29a(1) (E-fuel mode).
+11. **Illustration numbers** (1.5 MJ electricity per MJ fuel, 20 gCO₂eq/MJ) are
+    labelled "Illustrative example, not a legal value".
+12. **German preset names** match Annex V DE; "Umweltschutzbeauftragter (TÜV
+    Rheinland)" matches the owner's profile.
+
+Note for later sessions: the German unit "g CO₂-Äq./MJ" is used in the e-fuel mode
+only, as in the German text of the Regulation. The biofuel and blend modes keep
+"gCO₂eq/MJ" in German. Unifying them is an open design choice for the owner.
+
 ## Next
 
-- [ ] Owner: add `job-fit-scorer/Career_Agent_Profile_Unaiz.md`. Then run the three
-      test ads through the skill and extend the expected reasons, gaps and keywords
-      with the additional profile facts (score band, flag, language and base CV should
-      stay as they are).
-- [ ] Owner: read the German texts once (see open questions).
+- Decided by the owner: the career profile file is private and must NOT be added to
+  this public repo. The job-fit scorer is used privately.
 
 ## Acceptance criteria status (checked on the live URL)
 
@@ -75,10 +142,6 @@ scenarios and screenshots, and `npx lighthouse http://localhost:4173/` with
 `CHROME_PATH` pointing at Chromium. These scripts are not in the repo.
 
 ## Open questions
-
-- German wording should be read once by the owner, especially the certificate title
-  "Umweltschutzbeauftragter (TÜV Rheinland)" in the About text and the German
-  preset names (written to follow the German text of Annex V, not checked against it).
 
 - Resolved: the repository was completely empty when work started. With the owner's
   approval, `main` was created from the README-only "Initial commit" of this branch.
