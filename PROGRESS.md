@@ -42,11 +42,17 @@ Handover file so another session can continue. Update after every step.
       language, else English. German uses decimal commas. `tests/i18n.test.ts` fails
       if a text is missing in either language.
 
+- [x] Stretch B: `job-fit-scorer/` (SKILL.md, README, 3 invented test ads with
+      expected results: strong fit, partial fit, not-a-fit). Written before the profile
+      file existed; expected results rely only on the About facts.
+
 ## Next
 
-- [ ] Stretch B: `job-fit-scorer/` Claude skill (SKILL.md + 3 test job ads with
-      expected outputs). Needs `Career_Agent_Profile_Unaiz.md` from the owner in that
-      folder; the skill must use only facts from that file.
+- [ ] Owner: add `job-fit-scorer/Career_Agent_Profile_Unaiz.md`. Then run the three
+      test ads through the skill and extend the expected reasons, gaps and keywords
+      with the additional profile facts (score band, flag, language and base CV should
+      stay as they are).
+- [ ] Owner: read the German texts once (see open questions).
 
 ## Acceptance criteria status (checked on the live URL)
 
